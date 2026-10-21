@@ -1,47 +1,53 @@
-package com.example.caprichometro
+package com.example.caprichometro.infrastructure.ui
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import com.example.caprichometro.ui.theme.CaprichometroTheme
+import com.example.caprichometro.application.usecase.SaveCapriceUseCase
+import com.example.caprichometro.infrastructure.auth.FirebaseAuthManager
+import com.example.caprichometro.infrastructure.data.FirestoreCapriceRepository
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+
+        FirebaseAuthManager().signInAnonymouslyIfNeeded()
+
+        val repository = FirestoreCapriceRepository()
+        val useCase = SaveCapriceUseCase(repository)
+        val viewModel = CapriceViewModel(useCase)
+
+        // Pintamos la pantalla
         setContent {
-            CaprichometroTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
-            }
+            CapriceApp(viewModel)
         }
     }
 }
 
 @Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
+fun CapriceApp(viewModel: CapriceViewModel) {
+    MaterialTheme {
+        Surface(modifier = Modifier.fillMaxSize()) {
+            CapriceScreen(viewModel)
+        }
+    }
 }
 
-@Preview(showBackground = true)
 @Composable
-fun GreetingPreview() {
-    CaprichometroTheme {
-        Greeting("Android")
+fun CapriceScreen(viewModel: CapriceViewModel) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Button(onClick = { viewModel.saveTestCaprice() }) {
+            Text("Probar Arquitectura Hexagonal")
+        }
     }
 }
