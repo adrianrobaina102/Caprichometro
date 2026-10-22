@@ -38,16 +38,3 @@ fun CapriceApp(viewModel: CapriceViewModel) {
         }
     }
 }
-
-@Composable
-fun CapriceScreen(viewModel: CapriceViewModel) {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Button(onClick = { viewModel.saveTestCaprice() }) {
-            Text("Probar Arquitectura Hexagonal")
-        }
-    }
-}

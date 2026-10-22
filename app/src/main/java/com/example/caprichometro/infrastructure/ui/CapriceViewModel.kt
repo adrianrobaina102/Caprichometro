@@ -10,11 +10,11 @@ class CapriceViewModel(
     private val saveCapriceUseCase: SaveCapriceUseCase
 ) : ViewModel() {
 
-    fun saveTestCaprice() {
+    fun saveCaprice(name: String, price: Double) {
         viewModelScope.launch {
             val testCaprice = Caprice(
-                name = "Monitor 4K",
-                price = 350.0,
+                name = name,
+                price = price,
                 isCaprice = false,
                 timestamp = 10
             )
