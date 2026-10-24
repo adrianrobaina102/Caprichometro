@@ -1,6 +1,7 @@
 import SwiftUI
 import Foundation
 
+
 private enum AuthStyle {
     static let background = Color(red: 0.035, green: 0.035, blue: 0.04)
     static let surface = Color(white: 0.07)
@@ -11,7 +12,7 @@ private enum AuthStyle {
 
 struct AuthView: View {
     @State private var isRegistering = false
-    @State private var showsConnectionNotice = false
+    let viewModel: AuthViewModel
 
     var body: some View {
         GeometryReader { geometry in
@@ -24,14 +25,7 @@ struct AuthView: View {
                     AuthTabs(isRegistering: $isRegistering)
                         .padding(.bottom, 24)
 
-                    AuthProviderButton(isApple: false) {
-                        showsConnectionNotice = true
-                    }
-                    .padding(.bottom, 20)
-
-                    AuthForm(isRegistering: isRegistering) {
-                        showsConnectionNotice = true
-                    }
+                    AuthForm(isRegistering: isRegistering, viewModel: viewModel)
 
                     HStack(spacing: 6) {
                         Text(isRegistering ? "¿Ya tienes cuenta?" : "¿No tienes cuenta?")
@@ -48,7 +42,7 @@ struct AuthView: View {
                     .padding(.top, 18)
 
                     AuthSocialAccess {
-                        showsConnectionNotice = true
+                        Task { await viewModel.signInWithGoogle() }
                     }
                     .padding(.top, 24)
 
@@ -72,11 +66,7 @@ struct AuthView: View {
         .tint(AuthStyle.lime)
         .buttonStyle(.plain)
         .preferredColorScheme(.dark)
-        .alert("Autenticación pendiente", isPresented: $showsConnectionNotice) {
-            Button("Entendido", role: .cancel) { }
-        } message: {
-            Text("Esta pantalla aún no está conectada a un servicio de autenticación.")
-        }
+        .disabled(viewModel.isSubmitting)
     }
 }
 
@@ -122,21 +112,9 @@ private struct AuthTab: View {
 
 private struct AuthForm: View {
     let isRegistering: Bool
-    let onSubmit: () -> Void
-
-    @State private var realName = ""
-    @State private var birthday: Date?
-    @State private var email = ""
-    @State private var password = ""
+    @Bindable var viewModel:  AuthViewModel
     @State private var showsPassword = false
-    @State private var errorMessage: String?
-    @FocusState private var focusedField: Field?
-
-    private enum Field: Hashable {
-        case realName
-        case email
-        case password
-    }
+    @FocusState private var focusedField: AuthViewModel.Field?
 
     var body: some View {
         VStack(spacing: 12) {
@@ -146,7 +124,7 @@ private struct AuthForm: View {
                         .foregroundStyle(AuthStyle.muted)
                         .frame(width: 20)
                         .accessibilityHidden(true)
-                    TextField("Nombre real", text: $realName,
+                    TextField("Nombre real", text: $viewModel.realName,
                               prompt: Text("Nombre real").foregroundStyle(AuthStyle.muted))
                         .textContentType(.name)
                         .textInputAutocapitalization(.words)
@@ -157,7 +135,7 @@ private struct AuthForm: View {
                 }
                 .modifier(AuthFieldStyle())
 
-                AuthBirthdayField(birthday: $birthday)
+                AuthBirthdayField(birthday: $viewModel.birthday)
             }
 
             HStack(spacing: 14) {
@@ -165,15 +143,16 @@ private struct AuthForm: View {
                     .foregroundStyle(AuthStyle.muted)
                     .frame(width: 20)
                     .accessibilityHidden(true)
-                TextField("Correo o usuario", text: $email,
-                          prompt: Text("Correo o usuario").foregroundStyle(AuthStyle.muted))
-                    .textContentType(.username)
+                TextField("Correo electrónico", text: $viewModel.email,
+                          prompt: Text("Correo electrónico").foregroundStyle(AuthStyle.muted))
+                    .textContentType(.emailAddress)
+                    .keyboardType(.emailAddress)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .submitLabel(.next)
                     .focused($focusedField, equals: .email)
                     .onSubmit { focusedField = .password }
-                    .accessibilityLabel("Correo o usuario")
+                    .accessibilityLabel("Correo electrónico")
             }
             .modifier(AuthFieldStyle())
 
@@ -184,10 +163,10 @@ private struct AuthForm: View {
                     .accessibilityHidden(true)
                 Group {
                     if showsPassword {
-                        TextField("Contraseña", text: $password,
+                        TextField("Contraseña", text: $viewModel.password,
                                   prompt: Text("Contraseña").foregroundStyle(AuthStyle.muted))
                     } else {
-                        SecureField("Contraseña", text: $password,
+                        SecureField("Contraseña", text: $viewModel.password,
                                     prompt: Text("Contraseña").foregroundStyle(AuthStyle.muted))
                     }
                 }
@@ -212,7 +191,7 @@ private struct AuthForm: View {
             }
             .modifier(AuthFieldStyle())
 
-            if let errorMessage {
+            if let errorMessage = viewModel.errorMessage {
                 Text(errorMessage)
                     .font(.footnote)
                     .foregroundStyle(.red)
@@ -220,7 +199,7 @@ private struct AuthForm: View {
             }
 
             Button(action: submit) {
-                Text(isRegistering ? "Crear cuenta" : "Entrar")
+                Text(viewModel.isSubmitting ? "Espera…" : (isRegistering ? "Crear cuenta" : "Entrar"))
                     .font(.headline)
                     .foregroundStyle(.black)
                     .frame(maxWidth: .infinity, minHeight: 52)
@@ -229,37 +208,25 @@ private struct AuthForm: View {
             .padding(.top, 8)
         }
         .onChange(of: isRegistering) {
-            errorMessage = nil
+            viewModel.clearError()
             focusedField = nil
         }
     }
 
     private func submit() {
-        if isRegistering {
-            guard !realName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-                errorMessage = "Introduce tu nombre real."
-                focusedField = .realName
-                return
-            }
-            guard let birthday, birthday <= Date() else {
-                errorMessage = "Selecciona tu fecha de nacimiento."
-                focusedField = nil
-                return
-            }
-        }
-        guard !email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            errorMessage = "Introduce tu correo o usuario."
-            focusedField = .email
+        guard !viewModel.isSubmitting else { return }
+        guard viewModel.validate(isRegistering: isRegistering) else {
+            focusedField = viewModel.invalidField
             return
         }
-        guard !password.isEmpty else {
-            errorMessage = "Introduce tu contraseña."
-            focusedField = .password
-            return
-        }
-        errorMessage = nil
         focusedField = nil
-        onSubmit()
+        Task {
+            if isRegistering {
+                await viewModel.register()
+            } else {
+                await viewModel.signIn()
+            }
+        }
     }
 }
 
@@ -287,40 +254,33 @@ private struct AuthSocialAccess: View {
                 Text("o").font(.subheadline).foregroundStyle(AuthStyle.muted)
                 Rectangle().fill(AuthStyle.border).frame(height: 1)
             }
-            AuthProviderButton(isApple: true, action: action)
+            AuthProviderButton(action: action)
         }
     }
 }
 
 private struct AuthProviderButton: View {
-    let isApple: Bool
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             HStack(spacing: 16) {
-                if isApple {
-                    Image(systemName: "apple.logo")
-                        .font(.title2)
-                        .accessibilityHidden(true)
-                } else {
-                    Image("GoogleLogo")
-                        .renderingMode(.original)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 20, height: 20)
-                        .accessibilityHidden(true)
-                }
-                Text(isApple ? "Continuar con Apple" : "Continuar con Google")
+                Image("GoogleLogo")
+                    .renderingMode(.original)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 20, height: 20)
+                    .accessibilityHidden(true)
+                Text("Continuar con Google")
                     .font(.body.weight(.semibold))
             }
-            .foregroundStyle(isApple ? Color.black : Color.white)
+            .foregroundStyle(Color.white)
             .frame(maxWidth: .infinity, minHeight: 52)
-            .background(isApple ? Color.white : AuthStyle.surface,
+            .background(AuthStyle.surface,
                         in: RoundedRectangle(cornerRadius: 16))
             .overlay {
                 RoundedRectangle(cornerRadius: 16)
-                    .strokeBorder(AuthStyle.border, lineWidth: isApple ? 0 : 1)
+                    .strokeBorder(AuthStyle.border, lineWidth: 1)
             }
         }
     }
@@ -439,5 +399,5 @@ private struct CaprichometroMark: View {
 
 
 #Preview {
-    AuthView()
+    AuthView(viewModel: AuthComposition.makePreviewViewModel())
 }
