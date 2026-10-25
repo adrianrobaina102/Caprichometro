@@ -25,14 +25,16 @@ final class FirebaseAuthRepository: AuthRepository {
         }
     }
 
-    func register(email: String, password: String) async throws {
+    func register(email: String, password: String) async throws -> String {
         do {
-            _ = try await configuredAuth().createUser(withEmail: email, password: password)
+            let result = try await configuredAuth()
+                .createUser(withEmail: email, password: password)
+
+            return result.user.uid
         } catch {
             throw mapError(error)
         }
     }
-
     func signIn(provider: SocialProvider) async throws {
         do {
             let auth = try configuredAuth()

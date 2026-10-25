@@ -124,14 +124,14 @@ private struct AuthForm: View {
                         .foregroundStyle(AuthStyle.muted)
                         .frame(width: 20)
                         .accessibilityHidden(true)
-                    TextField("Nombre real", text: $viewModel.realName,
-                              prompt: Text("Nombre real").foregroundStyle(AuthStyle.muted))
-                        .textContentType(.name)
-                        .textInputAutocapitalization(.words)
-                        .submitLabel(.next)
-                        .focused($focusedField, equals: .realName)
-                        .onSubmit { focusedField = .email }
-                        .accessibilityLabel("Nombre real")
+                    Text("@")
+                        .foregroundStyle(AuthStyle.muted)
+
+                    TextField("usuario", text: $viewModel.username)
+                        .textContentType(.username)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .focused($focusedField, equals: .username)
                 }
                 .modifier(AuthFieldStyle())
 

@@ -11,7 +11,7 @@ enum AuthenticationError: Error {
 @MainActor
 protocol AuthRepository: AnyObject {
     func signIn(email: String, password: String) async throws
-    func register(email: String, password: String) async throws
+    func register(email: String, password: String) async throws -> String
     func signIn(provider: SocialProvider) async throws
     func signOut() throws
     func observeSession(_ onChange: @escaping @MainActor (Bool) -> Void) throws

@@ -13,8 +13,11 @@ struct AuthUseCases {
         try await repository.signIn(email: email.trimmingCharacters(in: .whitespacesAndNewlines), password: password)
     }
 
-    func register(email: String, password: String) async throws {
-        try await repository.register(email: email.trimmingCharacters(in: .whitespacesAndNewlines), password: password)
+    func register(email: String, password: String) async throws -> String {
+        try await repository.register(
+            email: email.trimmingCharacters(in: .whitespacesAndNewlines),
+            password: password
+        )
     }
 
     func signIn(provider: SocialProvider) async throws {

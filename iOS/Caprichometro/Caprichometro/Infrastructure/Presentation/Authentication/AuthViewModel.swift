@@ -5,12 +5,12 @@ import Observation
 @Observable
 final class AuthViewModel {
     enum Field: Hashable {
-        case realName
+        case username
         case email
         case password
     }
 
-    var realName = ""
+    var username = ""
     var birthday: Date?
     var email = ""
     var password = ""
@@ -21,11 +21,15 @@ final class AuthViewModel {
     private(set) var invalidField: Field?
     private(set) var signOutError: String?
     private let useCases: AuthUseCases
+    private let registerUserUseCase: RegisterUserUseCase
 
-    init(useCases: AuthUseCases) {
+    init(
+        useCases: AuthUseCases,
+        registerUserUseCase: RegisterUserUseCase
+    ) {
         self.useCases = useCases
+        self.registerUserUseCase = registerUserUseCase
     }
-
     var showsSignOutError: Bool {
         get { signOutError != nil }
         set { if !newValue { signOutError = nil } }
@@ -55,9 +59,9 @@ final class AuthViewModel {
     func validate(isRegistering: Bool) -> Bool {
         clearError()
         if isRegistering {
-            guard !realName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-                errorMessage = "Introduce tu nombre real."
-                invalidField = .realName
+            guard UsernameRules.isValid(username) else {
+                errorMessage = "Usa de 3 a 20 letras, números o guiones bajos."
+                invalidField = .username
                 return false
             }
             guard let birthday, birthday <= Date() else {
@@ -98,12 +102,15 @@ final class AuthViewModel {
 
         do {
             if isRegistering {
-                try await useCases.register(
-                    email: submittedEmail, password: submittedPassword
+                try await registerUserUseCase.execute(
+                    username: username,
+                    email: submittedEmail,
+                    password: submittedPassword
                 )
             } else {
                 try await useCases.signIn(
-                    email: submittedEmail, password: submittedPassword
+                    email: submittedEmail,
+                    password: submittedPassword
                 )
             }
             password = ""
@@ -134,7 +141,7 @@ final class AuthViewModel {
     func signOut() {
         do {
             try useCases.signOut()
-            realName = ""
+            username = ""
             birthday = nil
             email = ""
             password = ""
@@ -146,6 +153,19 @@ final class AuthViewModel {
     }
 
     private func authenticationMessage(for error: Error) -> String {
+        if let error = error as? RegisterUserError {
+            switch error {
+            case .invalidUsername:
+                return "Usa de 3 a 20 letras, números o guiones bajos."
+            }
+        }
+
+        if let error = error as? UserProfileRepositoryError {
+            switch error {
+            case .usernameAlreadyTaken:
+                return "Ese nombre de usuario ya está ocupado."
+            }
+        }
         switch (error as? AuthenticationError) ?? .unknown {
         case .invalidEmail:
             return "Introduce un correo electrónico válido."
@@ -175,6 +195,8 @@ final class AuthViewModel {
             return "Ya existe una cuenta con este correo. Inicia sesión con el método que utilizaste al registrarte."
         case .unknown:
             return "No se pudo completar la operación. Inténtalo de nuevo."
+            
         }
+        
     }
 }
