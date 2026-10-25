@@ -1,9 +1,11 @@
 package com.example.caprichometro.infrastructure.ui.auth
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.caprichometro.application.usecase.auth.RegisterUseCase
 import com.example.caprichometro.application.usecase.auth.SignInUseCase
+import com.example.caprichometro.application.usecase.auth.SignInWithGoogleUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,7 +25,8 @@ data class AuthState(
 
 class AuthViewModel(
     private val signInUseCase: SignInUseCase,
-    private val registerUseCase: RegisterUseCase
+    private val registerUseCase: RegisterUseCase,
+    private val signInWithGoogleUseCase: SignInWithGoogleUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AuthState())
@@ -113,7 +116,22 @@ class AuthViewModel(
         }
     }
 
-    fun signInWithGoogle() {
-        _state.update { it.copy(errorMessage = "Login con Google en desarrollo") }
+    fun signInWithGoogle(context: Context) {
+        viewModelScope.launch {
+            _state.update { it.copy(isSubmitting = true, errorMessage = null) }
+
+            val result = signInWithGoogleUseCase.execute(context)
+
+            result.fold(
+                onSuccess = {
+                    _state.update { it.copy(isSubmitting = false, isAuthSuccessful = true) }
+                },
+                onFailure = { exception ->
+                    _state.update {
+                        it.copy(isSubmitting = false, errorMessage = exception.message ?: "Error al iniciar sesión con Google")
+                    }
+                }
+            )
+        }
     }
 }

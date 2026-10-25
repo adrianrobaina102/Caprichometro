@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import com.example.caprichometro.application.usecase.SaveCapriceUseCase
 import com.example.caprichometro.application.usecase.auth.RegisterUseCase
 import com.example.caprichometro.application.usecase.auth.SignInUseCase
+import com.example.caprichometro.application.usecase.auth.SignInWithGoogleUseCase
 import com.example.caprichometro.infrastructure.auth.FirebaseAuthManager
 import com.example.caprichometro.infrastructure.auth.FirebaseAuthRepository
 import com.example.caprichometro.infrastructure.data.FirestoreCapriceRepository
@@ -32,7 +33,8 @@ class MainActivity : ComponentActivity() {
         val authRepository = FirebaseAuthRepository()
         val signInUseCase = SignInUseCase(authRepository)
         val registerUseCase = RegisterUseCase(authRepository)
-        val authViewModel = AuthViewModel(signInUseCase, registerUseCase)
+        val registerGoogleUseCase = SignInWithGoogleUseCase(authRepository);
+        val authViewModel = AuthViewModel(signInUseCase, registerUseCase, registerGoogleUseCase)
 
         setContent {
             CapriceApp(authViewModel, capriceViewModel)

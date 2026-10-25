@@ -1,10 +1,19 @@
 package com.example.caprichometro.infrastructure.auth
 
+import android.content.Context
+import androidx.credentials.CredentialManager
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.CustomCredential
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import com.google.firebase.auth.GoogleAuthProvider
+import kotlinx.coroutines.tasks.await
+
 import com.example.caprichometro.domain.model.AuthRepository
 import com.example.caprichometro.domain.model.User
+import com.example.caprichometro.BuildConfig
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.UserProfileChangeRequest
-import kotlinx.coroutines.tasks.await
 
 class FirebaseAuthRepository(
     private val firebaseAuth: FirebaseAuth = FirebaseAuth.getInstance()
@@ -38,9 +47,48 @@ class FirebaseAuthRepository(
         }
     }
 
-    override suspend fun signInWithGoogle(idToken: String): Result<User> {
-        // Lo dejamos preparado para cuando implementes el botón de Google
-        return Result.failure(NotImplementedError("Google Sign In pendiente de implementar"))
+    override suspend fun signInWithGoogle(context: Context): Result<User> {
+        return try {
+            val credentialManager = CredentialManager.create(context)
+
+            // 1. Configuramos la petición usando tu clave segura del BuildConfig
+            val googleIdOption = GetGoogleIdOption.Builder()
+                .setFilterByAuthorizedAccounts(false)
+                .setServerClientId(BuildConfig.WEB_CLIENT_ID)
+                .setAutoSelectEnabled(true)
+                .build()
+
+            val request = GetCredentialRequest.Builder()
+                .addCredentialOption(googleIdOption)
+                .build()
+
+            // 2. Lanzamos la ventana nativa de Android para que el usuario elija cuenta
+            val result = credentialManager.getCredential(context, request)
+            val credential = result.credential
+
+            // 3. Verificamos que es un token de Google válido
+            if (credential is CustomCredential && credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
+                val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
+
+                // 4. Se lo entregamos a Firebase para que valide la sesión
+                val firebaseAuthCredential = GoogleAuthProvider.getCredential(googleIdTokenCredential.idToken, null)
+                val authResult = firebaseAuth.signInWithCredential(firebaseAuthCredential).await()
+
+                val firebaseUser = authResult.user ?: throw Exception("Error al obtener usuario de Firebase")
+
+                Result.success(
+                    User(
+                        id = firebaseUser.uid,
+                        email = firebaseUser.email ?: "",
+                        name = firebaseUser.displayName ?: "Usuario"
+                    )
+                )
+            } else {
+                Result.failure(Exception("Credencial no válida o cancelada"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
     private fun mapToDomain(
         firebaseUser: com.google.firebase.auth.FirebaseUser,

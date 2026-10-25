@@ -24,6 +24,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.ui.platform.LocalContext
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AuthScreen(viewModel: AuthViewModel) {
@@ -182,9 +183,9 @@ fun AuthScreen(viewModel: AuthViewModel) {
         Spacer(modifier = Modifier.height(24.dp))
         Text(text = "o", color = lightGrayText, fontSize = 12.sp)
         Spacer(modifier = Modifier.height(24.dp))
-
+        val context = LocalContext.current
         OutlinedButton(
-            onClick = viewModel::signInWithGoogle,
+            onClick = { viewModel.signInWithGoogle(context) },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
