@@ -1,1 +1,22 @@
-/build
+# Entorno de desarrollo (Android Studio e IntelliJ)
+*.iml
+.gradle/
+/.idea/
+.DS_Store
+/local.properties
+
+# Carpetas de compilación generadas por Gradle
+/build/
+*/build/
+/captures/
+.externalNativeBuild/
+.cxx/
+
+# Claves secretas y configuración de Firebase (¡CRÍTICO!)
+google-services.json
+*/google-services.json
+*.jks
+*.keystore
+
+# Archivos de log
+*.log

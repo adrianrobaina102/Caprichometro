@@ -12,6 +12,8 @@ import androidx.compose.ui.Modifier
 import com.example.caprichometro.application.usecase.SaveCapriceUseCase
 import com.example.caprichometro.infrastructure.auth.FirebaseAuthManager
 import com.example.caprichometro.infrastructure.data.FirestoreCapriceRepository
+import com.example.caprichometro.infrastructure.ui.auth.AuthScreen
+import com.example.caprichometro.infrastructure.ui.auth.AuthViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -22,7 +24,6 @@ class MainActivity : ComponentActivity() {
         val repository = FirestoreCapriceRepository()
         val useCase = SaveCapriceUseCase(repository)
         val viewModel = CapriceViewModel(useCase)
-
         // Pintamos la pantalla
         setContent {
             CapriceApp(viewModel)
@@ -32,9 +33,11 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun CapriceApp(viewModel: CapriceViewModel) {
+    val autoViewModel = AuthViewModel();
     MaterialTheme {
         Surface(modifier = Modifier.fillMaxSize()) {
-            CapriceScreen(viewModel)
+            //CapriceScreen(viewModel)
+            AuthScreen(viewModel = autoViewModel)
         }
     }
 }
