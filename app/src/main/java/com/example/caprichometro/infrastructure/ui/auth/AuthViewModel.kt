@@ -17,7 +17,8 @@ data class AuthState(
     val name: String = "",
     val birthday: LocalDate? = null,
     val isSubmitting: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val isAuthSuccessful: Boolean = false
 )
 
 class AuthViewModel(
@@ -35,8 +36,46 @@ class AuthViewModel(
     fun updateBirthday(date: LocalDate) { _state.update { it.copy(birthday = date) } }
     fun signIn() {
         val currentState = _state.value
+        if (currentState.email.isBlank() || currentState.password.isBlank()) {
+            _state.update { it.copy(errorMessage = "El email y la contraseña son obligatorios") }
+            return
+        }
+
+        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(currentState.email).matches()) {
+            _state.update { it.copy(errorMessage = "Por favor, introduce un correo electrónico válido") }
+            return
+        }
+
+        _state.update { it.copy(isSubmitting = true, errorMessage = null) }
+
+        viewModelScope.launch {
+            val result = signInUseCase.execute(currentState.email, currentState.password)
+            result.fold(
+                onSuccess = { user ->
+                    _state.update { it.copy(isSubmitting = false, isAuthSuccessful = true) }
+                },
+                onFailure = { error ->
+                    _state.update {
+                        it.copy(
+                            isSubmitting = false,
+                            errorMessage = error.message ?: "Error al iniciar sesión"
+                        )
+                    }
+                }
+            )
+        }
+    }
+
+    fun register() {
+        val currentState = _state.value
+
         if (currentState.name.isBlank() || currentState.email.isBlank() || currentState.password.isBlank() || currentState.birthday == null) {
             _state.update { it.copy(errorMessage = "Todos los campos, incluida la fecha, son obligatorios") }
+            return
+        }
+
+        if (currentState.birthday.isAfter(java.time.LocalDate.now())) {
+            _state.update { it.copy(errorMessage = "La fecha de nacimiento no puede ser en el futuro") }
             return
         }
 
@@ -53,34 +92,6 @@ class AuthViewModel(
         _state.update { it.copy(isSubmitting = true, errorMessage = null) }
 
         viewModelScope.launch {
-            val result = signInUseCase.execute(currentState.email, currentState.password)
-            result.fold(
-                onSuccess = { user ->
-                    _state.update { it.copy(isSubmitting = false) }
-                    // TODO: Lanzar evento de navegación hacia la pantalla principal
-                },
-                onFailure = { error ->
-                    _state.update {
-                        it.copy(
-                            isSubmitting = false,
-                            errorMessage = error.message ?: "Error al iniciar sesión"
-                        )
-                    }
-                }
-            )
-        }
-    }
-
-    fun register() {
-        val currentState = _state.value
-        if (currentState.name.isBlank() || currentState.email.isBlank() || currentState.password.isBlank()) {
-            _state.update { it.copy(errorMessage = "Todos los campos son obligatorios") }
-            return
-        }
-
-        _state.update { it.copy(isSubmitting = true, errorMessage = null) }
-
-        viewModelScope.launch {
             val result = registerUseCase.execute(
                 currentState.email,
                 currentState.password,
@@ -88,8 +99,7 @@ class AuthViewModel(
             )
             result.fold(
                 onSuccess = { user ->
-                    _state.update { it.copy(isSubmitting = false) }
-                    // TODO: Lanzar evento de navegación hacia la pantalla principal
+                    _state.update { it.copy(isSubmitting = false, isAuthSuccessful = true) }
                 },
                 onFailure = { error ->
                     _state.update {
