@@ -1,46 +1,33 @@
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="100dp"
-    android:height="100dp"
-    android:viewportWidth="100"
-    android:viewportHeight="100">
-
-    <!-- Arco izquierdo (Verde Lima) - Más abierto y estilizado -->
+<?xml version='1.0' encoding='utf-8'?>
+<vector
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="110dp"
+    android:height="96dp"
+    android:viewportWidth="110"
+    android:viewportHeight="96">
     <path
-        android:pathData="M 12,72 A 38,38 0 0,1 48,35"
-        android:strokeColor="#D4FF00"
-        android:strokeWidth="10"
+        android:name="arco_verde"
+        android:pathData="M12 82C4.99999 57 23 31 47 28"
+        android:fillColor="#00000000"
+        android:strokeColor="#D4FF64"
+        android:strokeWidth="15"
         android:strokeLineCap="round" />
-
-    <!-- Arco derecho (Gris Oscuro) - Simétrico al izquierdo -->
     <path
-        android:pathData="M 88,72 A 38,38 0 0,0 52,35"
-        android:strokeColor="#2A2A2A"
-        android:strokeWidth="10"
+        android:name="arco_oscuro"
+        android:pathData="M62 28C86 31 104 57 97 82"
+        android:fillColor="#00000000"
+        android:strokeColor="#262626"
+        android:strokeWidth="15"
         android:strokeLineCap="round" />
-
-    <!-- Rayo Central -->
     <path
-        android:pathData="M 50,22 L 50,11"
-        android:strokeColor="#D4FF00"
+        android:name="corazon"
+        android:pathData="M54.5 87L44 77C34 67 45 57 54.5 65C64 57 75 67 65 77L54.5 87Z"
+        android:fillColor="#F5F5F5" />
+    <path
+        android:name="destellos"
+        android:pathData="M55 3V12M33 10L39 17M76 10L70 17"
+        android:fillColor="#00000000"
+        android:strokeColor="#D4FF64"
         android:strokeWidth="4"
         android:strokeLineCap="round" />
-
-    <!-- Rayo Izquierdo -->
-    <path
-        android:pathData="M 35,25 L 27,17"
-        android:strokeColor="#D4FF00"
-        android:strokeWidth="4"
-        android:strokeLineCap="round" />
-
-    <!-- Rayo Derecho -->
-    <path
-        android:pathData="M 65,25 L 73,17"
-        android:strokeColor="#D4FF00"
-        android:strokeWidth="4"
-        android:strokeLineCap="round" />
-
-    <!-- Corazón (Blanco) - Bajado y proporcionado en su sitio exacto -->
-    <path
-        android:pathData="M 50,80 C 50,80 37,67 37,57 C 37,50 43,47 47,51 C 49,53 50,55 50,55 C 50,55 51,53 53,51 C 57,47 63,50 63,57 C 63,67 50,80 50,80 Z"
-        android:fillColor="#FFFFFF" />
 </vector>
