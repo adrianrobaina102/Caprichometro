@@ -1,63 +1,82 @@
 package com.example.caprichometro.infrastructure.ui.auth
 
+import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.ui.platform.LocalContext
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun AuthScreen(viewModel: AuthViewModel) {
-    val state by viewModel.state.collectAsState()
-    var isLoginMode by remember { mutableStateOf(false) }
-    var passwordVisible by remember { mutableStateOf(false) }
-    var showDatePicker by remember { mutableStateOf(false) }
-    val datePickerState = rememberDatePickerState()
+import com.example.caprichometro.R
 
-    val limeGreen = Color(0xFFCEF242)
-    val darkGray = Color(0xFF1C1C1E)
-    val lightGrayText = Color(0xFFA0A0A0)
+val DarkBackground = Color(0xFF121212)
+val LimeGreen = Color(0xFFD4FF00)
+val DarkSurface = Color(0xFF1E1E1E)
+val BorderGray = Color(0xFF2A2A2A)
+
+@Composable
+fun AuthScreen(
+    viewModel: AuthViewModel,
+    onNavigateToHome: () -> Unit
+) {
+    val context = LocalContext.current
+    val state by viewModel.state.collectAsState()
+
+    var isLoginMode by remember { mutableStateOf(true) }
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var isPasswordVisible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(state.isAuthSuccessful) {
+        if (state.isAuthSuccessful) {
+            onNavigateToHome()
+        }
+    }
+
+    LaunchedEffect(state.errorMessage) {
+        state.errorMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            viewModel.clearError()
+        }
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
-            .padding(horizontal = 24.dp)
-            .verticalScroll(rememberScrollState()),
+            .background(DarkBackground)
+            .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(modifier = Modifier.height(48.dp))
 
-        Box(contentAlignment = Alignment.Center, modifier = Modifier.size(80.dp)) {
-            CircularProgressIndicator(
-                progress = {0.3f},
-                color = limeGreen,
-                modifier = Modifier.fillMaxSize(),
-                strokeWidth = 2.dp
-            )
-        }
+        Icon(
+            painter = painterResource(id = R.drawable.ic_google),
+            contentDescription = "Logo Caprichómetro",
+            tint = Color.Unspecified,
+            modifier = Modifier.size(90.dp)
+        )
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         Text(
             text = "Caprichómetro",
@@ -67,19 +86,16 @@ fun AuthScreen(viewModel: AuthViewModel) {
         )
         Text(
             text = "Tus caprichos, tus dudas y tus planes\nen 5 minutos",
-            color = lightGrayText,
-            fontSize = 14.sp,
+            color = Color.Gray,
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 8.dp)
+            fontSize = 14.sp,
+            modifier = Modifier.padding(top = 8.dp, bottom = 32.dp)
         )
-
-        Spacer(modifier = Modifier.height(32.dp))
 
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(darkGray, RoundedCornerShape(12.dp))
-                .padding(4.dp)
+                .background(DarkSurface, RoundedCornerShape(12.dp))
         ) {
             AuthTab(
                 text = "Iniciar sesión",
@@ -96,77 +112,75 @@ fun AuthScreen(viewModel: AuthViewModel) {
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        if (!isLoginMode) {
-            CustomTextField(
-                value = state.name,
-                onValueChange = viewModel::updateName,
-                label = "Nombre"
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Box(modifier = Modifier.clickable { showDatePicker = true }) {
-                CustomTextField(
-                    value = state.birthday?.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) ?: "",
-                    onValueChange = {},
-                    label = "Cumpleaños",
-                    isReadOnly = true,
-                    trailingIcon = {
-                        IconButton(onClick = { showDatePicker = true }) {
-                            Icon(
-                                imageVector = Icons.Default.ArrowDropDown, // El icono de la flecha
-                                contentDescription = "Abrir calendario",
-                                tint = Color.Gray
-                            )
-                        }
-                    }
-                )
-                Spacer(modifier = Modifier
-                    .matchParentSize()
-                    .background(Color.Transparent))
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-        }
-
-        CustomTextField(
-            value = state.email,
-            onValueChange = viewModel::updateEmail,
-            label = "Correo electrónico"
+        OutlinedTextField(
+            value = email,
+            onValueChange = { email = it },
+            placeholder = { Text("Correo o usuario", color = Color.Gray) },
+            leadingIcon = { Icon(Icons.Default.Person, contentDescription = "Usuario", tint = Color.Gray) },
+            singleLine = true,
+            shape = RoundedCornerShape(12.dp),
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = DarkBackground,
+                unfocusedContainerColor = DarkBackground,
+                focusedIndicatorColor = LimeGreen,
+                unfocusedIndicatorColor = DarkSurface,
+                focusedTextColor = Color.White,
+                unfocusedTextColor = Color.White
+            ),
+            modifier = Modifier.fillMaxWidth()
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        CustomTextField(
-            value = state.password,
-            onValueChange = viewModel::updatePassword,
-            label = "Contraseña",
-            isPassword = true,
-            passwordVisible = passwordVisible,
-            onPasswordToggle = { passwordVisible = !passwordVisible }
+        OutlinedTextField(
+            value = password,
+            onValueChange = { password = it },
+            placeholder = { Text("Contraseña", color = Color.Gray) },
+            leadingIcon = { Icon(Icons.Default.Lock, contentDescription = "Contraseña", tint = Color.Gray) },
+            trailingIcon = {
+                val icon = if (isPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff
+                IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
+                    Icon(icon, contentDescription = "Ver contraseña", tint = Color.Gray)
+                }
+            },
+            singleLine = true,
+            visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            shape = RoundedCornerShape(12.dp),
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = DarkBackground,
+                unfocusedContainerColor = DarkBackground,
+                focusedIndicatorColor = LimeGreen,
+                unfocusedIndicatorColor = DarkSurface,
+                focusedTextColor = Color.White,
+                unfocusedTextColor = Color.White
+            ),
+            modifier = Modifier.fillMaxWidth()
         )
-
-        state.errorMessage?.let { error ->
-            Text(
-                text = error,
-                color = Color.Red,
-                fontSize = 12.sp,
-                modifier = Modifier.padding(top = 8.dp)
-            )
-        }
 
         Spacer(modifier = Modifier.height(24.dp))
 
         Button(
-            onClick = { if (isLoginMode) viewModel.signIn() else viewModel.register() },
+            onClick = {
+                viewModel.updateEmail(email)
+                viewModel.updatePassword(password)
+                if (isLoginMode) {
+                    viewModel.signIn()
+                } else {
+                    viewModel.register()
+                }
+            },
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = LimeGreen,
+                contentColor = Color.Black
+            ),
             modifier = Modifier
                 .fillMaxWidth()
-                .height(50.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = limeGreen),
-            shape = RoundedCornerShape(12.dp),
-            enabled = !state.isSubmitting
+                .height(50.dp)
         ) {
             Text(
-                text = if (isLoginMode) "Iniciar sesión" else "Crear cuenta",
-                color = Color.Black,
+                text = if (isLoginMode) "Entrar" else "Crear cuenta",
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp
             )
@@ -174,149 +188,89 @@ fun AuthScreen(viewModel: AuthViewModel) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Text(
-            text = "¿Ya tienes cuenta? Inicia sesión",
-            color = Color.White,
-            fontSize = 12.sp
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = if (isLoginMode) "¿No tienes cuenta? " else "¿Ya tienes cuenta? ",
+                color = Color.Gray
+            )
+            Text(
+                text = if (isLoginMode) "Regístrate" else "Inicia sesión",
+                color = LimeGreen,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.clickable { isLoginMode = !isLoginMode }
+            )
+        }
 
         Spacer(modifier = Modifier.height(24.dp))
-        Text(text = "o", color = lightGrayText, fontSize = 12.sp)
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            HorizontalDivider(modifier = Modifier.weight(1f), color = BorderGray)
+            Text(" o ", color = Color.Gray, modifier = Modifier.padding(horizontal = 16.dp))
+            HorizontalDivider(modifier = Modifier.weight(1f), color = BorderGray)
+        }
+
         Spacer(modifier = Modifier.height(24.dp))
-        val context = LocalContext.current
+
         OutlinedButton(
             onClick = { viewModel.signInWithGoogle(context) },
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = Color.White
+            ),
+            border = BorderStroke(1.dp, BorderGray),
             modifier = Modifier
                 .fillMaxWidth()
-                .height(50.dp),
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
-            border = androidx.compose.foundation.BorderStroke(1.dp, darkGray),
-            shape = RoundedCornerShape(12.dp)
+                .height(50.dp)
         ) {
-            Text("Continuar con Google", color = Color.White)
+            Image(
+                painter = painterResource(id = R.drawable.ic_caprichometro_logo),
+                contentDescription = "Logo Caprichómetro",
+                modifier = Modifier.size(90.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Continuar con Google", fontWeight = FontWeight.Medium)
         }
 
         Spacer(modifier = Modifier.height(32.dp))
+
         Text(
             text = "Al continuar aceptas los términos",
-            color = lightGrayText,
+            color = Color.Gray,
             fontSize = 12.sp
         )
-        Spacer(modifier = Modifier.height(24.dp))
-    }
-
-    if (showDatePicker) {
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        datePickerState.selectedDateMillis?.let { millis ->
-                            val localDate = Instant.ofEpochMilli(millis)
-                                .atZone(ZoneId.of("UTC"))
-                                .toLocalDate()
-
-                            viewModel.updateBirthday(localDate)
-                        }
-                        showDatePicker = false
-                    }
-                ) {
-                    Text("Aceptar", color = limeGreen)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) {
-                    Text("Cancelar", color = Color.White)
-                }
-            },
-            colors = DatePickerDefaults.colors(
-                containerColor = darkGray
-            )
-        ) {
-            DatePicker(
-                state = datePickerState,
-                showModeToggle = false,
-                colors = DatePickerDefaults.colors(
-                    containerColor = darkGray,
-                    titleContentColor = limeGreen,
-                    headlineContentColor = Color.White,
-                    weekdayContentColor = lightGrayText,
-                    dayContentColor = Color.White,
-                    todayContentColor = limeGreen,
-                    todayDateBorderColor = limeGreen,
-                    selectedDayContainerColor = limeGreen,
-                    selectedDayContentColor = Color.Black
-                )
-            )
-        }
     }
 }
 
 @Composable
-fun AuthTab(text: String, isSelected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    val backgroundColor = if (isSelected) Color(0xFF2C2C2E) else Color.Transparent
-    Box(
+fun AuthTab(
+    text: String,
+    isSelected: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Column(
         modifier = modifier
-            .background(backgroundColor, RoundedCornerShape(10.dp))
             .clickable { onClick() }
-            .padding(vertical = 12.dp),
-        contentAlignment = Alignment.Center
+            .padding(top = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
             text = text,
-            color = if (isSelected) Color.White else Color(0xFFA0A0A0),
+            color = if (isSelected) Color.White else Color.Gray,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
         )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun CustomTextField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: String,
-    isPassword: Boolean = false,
-    passwordVisible: Boolean = false,
-    onPasswordToggle: () -> Unit = {},
-    isReadOnly: Boolean = false,
-    trailingIcon: @Composable (() -> Unit)? = null
-) {
-    val limeGreen = Color(0xFFCEF242)
-    val darkGray = Color(0xFF1C1C1E)
-
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        readOnly = isReadOnly,
-        placeholder = { Text(label, color = Color.Gray) },
-        singleLine = true,
-        visualTransformation = if (isPassword && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
-        trailingIcon = {
-            if (isPassword) {
-                Text(
-                    text = if (passwordVisible) "Ocultar" else "Ver",
-                    color = Color.Gray,
-                    modifier = Modifier
-                        .clickable { onPasswordToggle() }
-                        .padding(end = 16.dp),
-                    fontSize = 14.sp
+        Spacer(modifier = Modifier.height(12.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(2.dp)
+                .background(
+                    color = if (isSelected) LimeGreen else Color.Transparent,
+                    shape = RoundedCornerShape(topStart = 50.dp, topEnd = 50.dp)
                 )
-            }
-            else {
-                trailingIcon?.invoke()
-            }
-        },
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedTextColor = Color.White,
-            unfocusedTextColor = Color.White,
-            focusedContainerColor = darkGray,
-            unfocusedContainerColor = darkGray,
-            focusedBorderColor = limeGreen,
-            unfocusedBorderColor = darkGray,
-            cursorColor = limeGreen
         )
-    )
+    }
 }

@@ -54,7 +54,14 @@ fun CapriceApp(authViewModel: AuthViewModel, capriceViewModel: CapriceViewModel)
                 CapriceScreen(viewModel = capriceViewModel)
             } else {
                 // Si no, lo mantenemos en la puerta de entrada
-                AuthScreen(viewModel = authViewModel)
+                AuthScreen(
+                    viewModel = authViewModel,
+                    onNavigateToHome = {
+                        // De momento lo dejamos vacío.
+                        // Como estamos usando el "if (authState.isAuthSuccessful)" arriba,
+                        // Compose cambiará de pantalla automáticamente.
+                    }
+                )
             }
         }
     }
