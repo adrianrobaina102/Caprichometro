@@ -70,4 +70,10 @@ private final class PreviewUserProfileRepository: UserProfileRepository {
     func isUsernameAvailable(_ username: String) async throws -> Bool {
         true
     }
+    func findByUsername(_ username: String) async throws -> UserProfile? {
+        nil
+    }
+    func findByID(_ userID: String) async throws -> UserProfile? {
+        nil
+    }
 }

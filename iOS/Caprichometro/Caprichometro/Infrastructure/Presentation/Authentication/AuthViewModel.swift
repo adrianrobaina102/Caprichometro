@@ -164,6 +164,8 @@ final class AuthViewModel {
             switch error {
             case .usernameAlreadyTaken:
                 return "Ese nombre de usuario ya está ocupado."
+            case .invalidUserProfileData:
+                return "No se pudieron leer los datos del perfil. Inténtalo de nuevo."
             }
         }
         switch (error as? AuthenticationError) ?? .unknown {

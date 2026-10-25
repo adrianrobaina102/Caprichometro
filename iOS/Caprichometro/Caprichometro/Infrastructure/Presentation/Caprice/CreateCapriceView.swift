@@ -45,3 +45,25 @@ struct CreateCapriceView: View {
         .navigationTitle("Nuevo capricho")
     }
 }
+
+#if DEBUG
+@MainActor
+private final class PreviewCapriceRepository: CapriceRepository {
+    func save(_ caprice: Caprice) async throws -> String {
+        "preview-caprice-id"
+    }
+}
+
+#Preview("Crear capricho") {
+    let repository = PreviewCapriceRepository()
+    let useCase = SaveCapriceUseCase(repository: repository)
+    let viewModel = CreateCapriceViewModel(
+        saveCapriceUseCase: useCase,
+        currentUserIDProvider: { "preview-user-id" }
+    )
+
+    NavigationStack {
+        CreateCapriceView(viewModel: viewModel)
+    }
+}
+#endif
