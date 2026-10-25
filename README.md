@@ -2,44 +2,57 @@
 
 > Tus caprichos, tus dudas y tus planes en 5 minutos.
 
-Caprichómetro es una aplicación Android nativa diseñada para ayudar a los usuarios a gestionar sus decisiones, caprichos y planes de forma rápida e intuitiva. El proyecto destaca por estar construido bajo estrictos estándares de código limpio y separación de responsabilidades.
+Caprichómetro es una aplicación Android nativa diseñada para gestionar decisiones, caprichos y planes de forma rápida e intuitiva, construida bajo estrictos estándares de código limpio, separación de responsabilidades y **Arquitectura Hexagonal**.
 
-## 🏗 Arquitectura: Hexagonal (Ports and Adapters)
+---
 
-El proyecto está estructurado utilizando **Arquitectura Hexagonal** (Clean Architecture), garantizando que la lógica de negocio esté completamente aislada de los frameworks externos y la interfaz de usuario. El código se divide en tres capas principales:
+## 🏗 Arquitectura y Estructura del Proyecto
 
--   **Dominio (Domain):** Contiene los modelos de negocio puros (como `User` o los datos manejados con `LocalDate`) y los puertos (interfaces) que definen cómo la aplicación se comunica con el exterior. No tiene dependencias de Android.
--   **Aplicación (Application):** Contiene los Casos de Uso (`SignInUseCase`, `RegisterUseCase`, `SaveCapriceUseCase`, `SignInWithGoogleUseCase`) que orquestan la lógica de la aplicación utilizando los puertos del dominio.
--   **Infraestructura (Infrastructure):** Contiene los adaptadores tecnológicos.
-    -   **UI:** Implementada 100% con Jetpack Compose y ViewModels (MVI/MVVM).
-    -   **Data:** Implementaciones reales de los repositorios utilizando Firebase Authentication y Cloud Firestore (`FirebaseAuthRepository`, `FirestoreCapriceRepository`).
+El proyecto aísla la lógica de negocio de los frameworks externos dividiéndose en tres capas principales:
 
-## 🛠 Stack Tecnológico
+- **Dominio (`domain`):** Modelos puros de negocio (como `Caprice`) y puertos (interfaces de repositorio como `CapriceRepository`). Sin dependencias de Android.
+- **Aplicación (`application`):** Casos de uso que orquestan las operaciones (`SaveCapriceUseCase`, `GetCapricesUseCase`).
+- **Infraestructura (`infrastructure`):** Adaptadores tecnológicos y UI.
+    - **Data (`infrastructure/data`):** Implementaciones reales contra Firebase Firestore (`FirestoreCapriceRepository`).
+    - **UI (`infrastructure/ui`):** Pantallas construidas 100% con Jetpack Compose (`CapriceScreen`, `ActivePollScreen`, `ResultScreen`), ViewModels y navegación basada en estados locales.
 
--   **Lenguaje:** Kotlin
--   **UI:** Jetpack Compose (Material Design 3)
--   **Arquitectura:** Clean Architecture + MVVM + StateFlow
--   **Fechas:** API moderna `java.time` (`LocalDate`, `Instant`)
--   **Backend as a Service (BaaS):** Firebase (Auth & Firestore)
--   **Testing:** JUnit 5, MockK, AssertJ
--   **Control de Versiones:** Git
+---
 
-## ✅ Estado Actual (Progreso)
+## 🛠 Trazabilidad de Cambios: Clases Creadas y Modificadas
 
-La base del proyecto está asentada y actualmente contamos con:
+Para implementar con éxito el flujo completo de creación, persistencia filtrada por usuario, cuenta atrás en tiempo real y transición a la pantalla de resultados, se han estructurado y modificado los siguientes componentes:
 
-- [x] **Estructura Hexagonal:** Capas definidas e inyección de dependencias manual preparada.
-- [x] **Sistema de Autenticación (Email/Password):** Registro e inicio de sesión integrados con Firebase Auth.
-- [x] **Inicio de sesión con Google (SSO):** Integración nativa con la API moderna `Credential Manager` y Firebase Auth, ocultando credenciales seguras mediante `BuildConfig`.
-- [x] **Interfaz de Usuario (AuthScreen):** UI personalizada con tema oscuro, acentos en verde lima y diseño adaptativo.
-- [x] **Validaciones Robustas:** Comprobación de formato de email, longitud de contraseña y campos vacíos.
-- [x] **Selector de Fecha (DatePicker):** Integración del calendario nativo de Material 3 con blindaje lógico.
-- [x] **Enrutamiento por Estado:** Navegación basada en estado (`isAuthSuccessful`) desde la pantalla de login hacia la pantalla principal (`CapriceScreen`).
-- [x] **Testing Unitario:** Cobertura de la capa de Presentación (`AuthViewModel`) usando JUnit 5, MockK y AssertJ para gestionar estados con corrutinas de prueba.
+### 1. Capa de Dominio (`domain`)
+* **`Caprice.kt` (Modificada):** Se añadió el campo `userId: String` para asociar cada capricho de forma unívoca al usuario autenticado.
+* **`CapriceRepository.kt` (Modificada):** Se añadió el contrato de lectura asíncrona filtrada: `suspend fun getCaprices(userId: String, limit: Int): Result<List<Caprice>>`.
 
-## 🚀 Próximos Pasos (TODO)
+### 2. Capa de Aplicación (`application`)
+* **`GetCapricesUseCase.kt` (Nueva):** Caso de uso encargado de invocar el repositorio para recuperar los caprichos del usuario activo.
 
-- [ ] **Desarrollo de `CapriceScreen`:** Implementar la interfaz principal y la lógica core de la aplicación para guardar y leer los "caprichos" en Firestore.
-- [ ] **Navegación Avanzada:** Implementar *Navigation Compose* para gestionar el backstack cuando el flujo de pantallas crezca.
-- [ ] **Testing de Interfaz (UI):** Escribir tests de interfaz gráfica para los componentes de Jetpack Compose.
-- [ ] **Inyección de Dependencias (DI):** Migrar la creación manual de repositorios a Hilt o Koin para mayor escalabilidad.
+### 3. Capa de Infraestructura - Datos (`infrastructure/data`)
+* **`FirestoreCapriceRepository.kt` (Modificada):** Implementación del método de lectura en Firestore. Aplica el filtrado por `whereEqualTo("userId", userId)`, ordena cronológicamente de forma descendente por `timestamp` y limita los registros. *(Requiere un Índice Compuesto en Firestore para `userId (Ascending)` y `timestamp (Descending)`)*.
+
+### 4. Capa de Infraestructura - UI y Presentación (`infrastructure/ui`)
+* **`CapriceViewModel.kt` (Modificada):** Inyección del caso de uso `GetCapricesUseCase`, integración con `FirebaseAuth` para obtener el identificador del usuario activo, y actualización del estado mediante `CapriceState` para almacenar una lista de caprichos recientes (`latestCaprices`).
+* **`CapriceScreen.kt` (Modificada):** Interfaz de creación de dudas (tipo Compra/Plan) con validaciones de campos de texto y llamada automática al ViewModel para guardar y refrescar el último registro antes de navegar.
+* **`ActivePollScreen.kt` (Modificada):** Pantalla del temporizador cuenta atrás de 5 minutos. Utiliza un `LaunchedEffect` combinado con `delay(1000L)` para calcular en tiempo real el tiempo restante a partir del `timestamp` de Firestore. Al finalizar, invoca el callback `onTimerFinished()`.
+* **`ResultScreen.kt` (Nueva):** Pantalla de veredicto final que muestra el cierre de la votación y barras de progreso porcentuales estéticas basadas en las respuestas del modelo.
+* **`MainActivity.kt` (Modificada):** Enrutador declarativo central basado en una máquina de estados local (`currentScreen` controlada mediante un bloque `when`), encargada de inyectar manualmente las dependencias e interconectar las pantallas mediante funciones lambda (*callbacks*).
+
+---
+
+## 🤖 Guía Técnica y Reglas para el Agente (Coding Rules)
+
+> **Instrucción obligatoria para cualquier IA o asistente de desarrollo que colabore en este repositorio:** Si vas a modificar, ampliar o depurar código en este proyecto, estás estrictamente obligado a cumplir las siguientes directrices arquitectónicas:
+
+1. **Respeto Absoluto a la Arquitectura Hexagonal:**
+    * **Nunca** introduzcas llamadas directas a Firebase, SDKs de Android o frameworks externos dentro de las capas de `domain` o `application`. La lógica de negocio debe ser completamente agnóstica.
+2. **Flujo Unidireccional de Datos (UDF):**
+    * Las pantallas de Jetpack Compose son componentes visuales desacoplados. No deben mutar estados globales directamente; cualquier operación de lectura, escritura o lógica debe delegarse en los `ViewModels` a través de los Casos de Uso correspondientes.
+3. **Gestión Declarativa de Navegación:**
+    * La navegación entre pantallas se resuelve mediante enrutamiento por estados en la actividad principal y paso de funciones lambda (`callbacks`), evitando acoplar las pantallas a dependencias de navegación externas innecesarias en flujos de esta escala.
+4. **Clean Code y Convenciones de Nomenclatura:**
+    * Mantén la nomenclatura de variables, funciones, clases y archivos en **inglés**, siguiendo estrictamente los estándares de desarrollo en Kotlin para Android.
+    * Evita comentarios redundantes. El código fuente debe ser completamente autoexplicativo.
+5. **Tipado y Null-Safety:**
+    * Gestiona siempre los estados de carga, nulos o asíncronos utilizando los operadores seguros de Kotlin (`?.`, `?:`) al consumir datos dinámicos procedentes de servicios externos como Firebase Firestore.
