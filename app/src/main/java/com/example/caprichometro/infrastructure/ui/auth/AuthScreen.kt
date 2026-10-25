@@ -49,7 +49,7 @@ fun AuthScreen(viewModel: AuthViewModel) {
 
         Box(contentAlignment = Alignment.Center, modifier = Modifier.size(80.dp)) {
             CircularProgressIndicator(
-                progress = 0.3f,
+                progress = {0.3f},
                 color = limeGreen,
                 modifier = Modifier.fillMaxSize(),
                 strokeWidth = 2.dp
