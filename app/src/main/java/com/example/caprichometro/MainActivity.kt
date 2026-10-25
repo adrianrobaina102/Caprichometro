@@ -10,7 +10,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.example.caprichometro.application.usecase.SaveCapriceUseCase
+import com.example.caprichometro.application.usecase.auth.RegisterUseCase
+import com.example.caprichometro.application.usecase.auth.SignInUseCase
 import com.example.caprichometro.infrastructure.auth.FirebaseAuthManager
+import com.example.caprichometro.infrastructure.auth.FirebaseAuthRepository
 import com.example.caprichometro.infrastructure.data.FirestoreCapriceRepository
 import com.example.caprichometro.infrastructure.ui.auth.AuthScreen
 import com.example.caprichometro.infrastructure.ui.auth.AuthViewModel
@@ -21,23 +24,26 @@ class MainActivity : ComponentActivity() {
 
         FirebaseAuthManager().signInAnonymouslyIfNeeded()
 
-        val repository = FirestoreCapriceRepository()
-        val useCase = SaveCapriceUseCase(repository)
-        val viewModel = CapriceViewModel(useCase)
+        //val repository = FirestoreCapriceRepository()
+        //val useCase = SaveCapriceUseCase(repository)
+        //val viewModel = CapriceViewModel(useCase)
+        val authRepository = FirebaseAuthRepository()
+        val signInUseCase = SignInUseCase(authRepository)
+        val registerUseCase = RegisterUseCase(authRepository)
+        val authViewModel = AuthViewModel(signInUseCase, registerUseCase)
         // Pintamos la pantalla
         setContent {
-            CapriceApp(viewModel)
+            CapriceApp(authViewModel)
         }
     }
 }
 
 @Composable
-fun CapriceApp(viewModel: CapriceViewModel) {
-    val autoViewModel = AuthViewModel();
+fun CapriceApp(authViewModel: AuthViewModel) {
     MaterialTheme {
         Surface(modifier = Modifier.fillMaxSize()) {
             //CapriceScreen(viewModel)
-            AuthScreen(viewModel = autoViewModel)
+            AuthScreen(viewModel = authViewModel)
         }
     }
 }

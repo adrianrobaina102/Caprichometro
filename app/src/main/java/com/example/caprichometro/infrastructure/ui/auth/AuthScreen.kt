@@ -1,266 +1,321 @@
 package com.example.caprichometro.infrastructure.ui.auth
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
-// 1. DESIGN SYSTEM: Colors extracted cleanly
-object AuthStyle {
-    val Background = Color(0xFF09090A)
-    val Surface = Color(0xFF121212)
-    val Border = Color(0xFF292929)
-    val Muted = Color(0xFF919191)
-    val Lime = Color(0xFFD4FF5C)
-}
-
-// 2. MAIN SCREEN: Clean, readable, no logic spaghetti
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AuthScreen(viewModel: AuthViewModel) {
-    var isRegistering by remember { mutableStateOf(false) }
+    val state by viewModel.state.collectAsState()
+    var isLoginMode by remember { mutableStateOf(false) }
+    var passwordVisible by remember { mutableStateOf(false) }
+    var showDatePicker by remember { mutableStateOf(false) }
+    val datePickerState = rememberDatePickerState()
+
+    val limeGreen = Color(0xFFCEF242)
+    val darkGray = Color(0xFF1C1C1E)
+    val lightGrayText = Color(0xFFA0A0A0)
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(AuthStyle.Background)
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 28.dp, vertical = 48.dp),
+            .background(Color.Black)
+            .padding(horizontal = 24.dp)
+            .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        AuthHeader()
-        Spacer(modifier = Modifier.height(26.dp))
+        Spacer(modifier = Modifier.height(48.dp))
 
-        AuthTabs(isRegistering = isRegistering, onTabSelected = { isRegistering = it })
+        Box(contentAlignment = Alignment.Center, modifier = Modifier.size(80.dp)) {
+            CircularProgressIndicator(
+                progress = 0.3f,
+                color = limeGreen,
+                modifier = Modifier.fillMaxSize(),
+                strokeWidth = 2.dp
+            )
+        }
+
         Spacer(modifier = Modifier.height(24.dp))
 
-        AuthForm(isRegistering = isRegistering, viewModel = viewModel)
-        Spacer(modifier = Modifier.height(18.dp))
-
-        AuthToggleText(isRegistering = isRegistering, onToggle = { isRegistering = !isRegistering })
-        Spacer(modifier = Modifier.height(24.dp))
-
-        AuthSocialAccess(onGoogleSignIn = { /* viewModel.signInWithGoogle() */ })
-
-        Spacer(modifier = Modifier.weight(1f, fill = false))
-        Spacer(modifier = Modifier.height(32.dp))
-
-        Text(
-            text = "Al continuar aceptas los términos",
-            color = AuthStyle.Muted,
-            fontSize = 12.sp
-        )
-    }
-}
-
-// 3. COMPONENTS: Extracted to keep functions small
-@Composable
-private fun AuthHeader() {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        CaprichometroMark()
-        Spacer(modifier = Modifier.height(16.dp))
         Text(
             text = "Caprichómetro",
             color = Color.White,
-            fontSize = 32.sp,
-            fontWeight = FontWeight.SemiBold
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Bold
         )
         Text(
             text = "Tus caprichos, tus dudas y tus planes\nen 5 minutos",
-            color = AuthStyle.Muted,
-            fontSize = 16.sp,
+            color = lightGrayText,
+            fontSize = 14.sp,
             textAlign = TextAlign.Center,
-            lineHeight = 22.sp
+            modifier = Modifier.padding(top = 8.dp)
         )
-    }
-}
 
-@Composable
-private fun CaprichometroMark() {
-    // Simulated Canvas Drawing for the Logo
-    Canvas(modifier = Modifier.size(112.dp, 96.dp)) {
-        drawArc(
-            color = Color(0xFF262626),
-            startAngle = 166f,
-            sweepAngle = 208f,
-            useCenter = false,
-            style = Stroke(width = 15f, cap = StrokeCap.Round),
-            size = Size(size.width, size.height * 0.8f)
-        )
-        drawArc(
-            color = AuthStyle.Lime,
-            startAngle = 166f,
-            sweepAngle = 94f,
-            useCenter = false,
-            style = Stroke(width = 15f, cap = StrokeCap.Round),
-            size = Size(size.width, size.height * 0.8f)
-        )
-    }
-}
+        Spacer(modifier = Modifier.height(32.dp))
 
-@Composable
-private fun AuthTabs(isRegistering: Boolean, onTabSelected: (Boolean) -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(AuthStyle.Surface, RoundedCornerShape(16.dp))
-    ) {
-        // Tab: Login
-        Box(
+        Row(
             modifier = Modifier
-                .weight(1f)
-                .height(48.dp)
-                .background(if (!isRegistering) Color(0xFF1A1A1A) else Color.Transparent, RoundedCornerShape(16.dp))
-                .clickable { onTabSelected(false) },
-            contentAlignment = Alignment.Center
+                .fillMaxWidth()
+                .background(darkGray, RoundedCornerShape(12.dp))
+                .padding(4.dp)
         ) {
-            Text("Iniciar sesión", color = if (!isRegistering) Color.White else AuthStyle.Muted, fontWeight = if (!isRegistering) FontWeight.SemiBold else FontWeight.Normal)
-        }
-        // Tab: Register
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .height(48.dp)
-                .background(if (isRegistering) Color(0xFF1A1A1A) else Color.Transparent, RoundedCornerShape(16.dp))
-                .clickable { onTabSelected(true) },
-            contentAlignment = Alignment.Center
-        ) {
-            Text("Registrarse", color = if (isRegistering) Color.White else AuthStyle.Muted, fontWeight = if (isRegistering) FontWeight.SemiBold else FontWeight.Normal)
-        }
-    }
-}
+            AuthTab(
+                text = "Iniciar sesión",
+                isSelected = isLoginMode,
+                modifier = Modifier.weight(1f)
+            ) { isLoginMode = true }
 
-@Composable
-private fun AuthForm(isRegistering: Boolean, viewModel: AuthViewModel) {
-    // En Compose, guardamos el estado visual aquí o en el ViewModel.
-    // Usaremos variables locales para que la UI no dependa estrictamente del ViewModel aún
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var name by remember { mutableStateOf("") }
-    var showsPassword by remember { mutableStateOf(false) }
+            AuthTab(
+                text = "Registrarse",
+                isSelected = !isLoginMode,
+                modifier = Modifier.weight(1f)
+            ) { isLoginMode = false }
+        }
 
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        if (isRegistering) {
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                placeholder = { Text("Nombre real", color = AuthStyle.Muted) },
-                modifier = Modifier.fillMaxWidth().authFieldStyle(),
-                singleLine = true
+        Spacer(modifier = Modifier.height(24.dp))
+
+        if (!isLoginMode) {
+            CustomTextField(
+                value = state.name,
+                onValueChange = viewModel::updateName,
+                label = "Nombre"
             )
-            // Aquí iría el DatePicker que es un poco más complejo en Compose (lo dejamos como texto por ahora)
-            OutlinedTextField(
-                value = "",
-                onValueChange = { },
-                placeholder = { Text("Cumpleaños", color = AuthStyle.Muted) },
-                modifier = Modifier.fillMaxWidth().authFieldStyle(),
-                enabled = false // Simula el botón de calendario
-            )
-        }
+            Spacer(modifier = Modifier.height(16.dp))
 
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            placeholder = { Text("Correo electrónico", color = AuthStyle.Muted) },
-            modifier = Modifier.fillMaxWidth().authFieldStyle(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-            singleLine = true
-        )
-
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            placeholder = { Text("Contraseña", color = AuthStyle.Muted) },
-            modifier = Modifier.fillMaxWidth().authFieldStyle(),
-            visualTransformation = if (showsPassword) VisualTransformation.None else PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            singleLine = true,
-            trailingIcon = {
-                Text(
-                    text = if (showsPassword) "Ocultar" else "Ver",
-                    color = AuthStyle.Muted,
-                    modifier = Modifier.clickable { showsPassword = !showsPassword }.padding(end = 16.dp)
+            Box(modifier = Modifier.clickable { showDatePicker = true }) {
+                CustomTextField(
+                    value = state.birthday?.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) ?: "",
+                    onValueChange = {},
+                    label = "Cumpleaños",
+                    isReadOnly = true,
+                    trailingIcon = {
+                        IconButton(onClick = { showDatePicker = true }) {
+                            Icon(
+                                imageVector = Icons.Default.ArrowDropDown, // El icono de la flecha
+                                contentDescription = "Abrir calendario",
+                                tint = Color.Gray
+                            )
+                        }
+                    }
                 )
+                Spacer(modifier = Modifier
+                    .matchParentSize()
+                    .background(Color.Transparent))
             }
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
+        CustomTextField(
+            value = state.email,
+            onValueChange = viewModel::updateEmail,
+            label = "Correo electrónico"
         )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        CustomTextField(
+            value = state.password,
+            onValueChange = viewModel::updatePassword,
+            label = "Contraseña",
+            isPassword = true,
+            passwordVisible = passwordVisible,
+            onPasswordToggle = { passwordVisible = !passwordVisible }
+        )
+
+        state.errorMessage?.let { error ->
+            Text(
+                text = error,
+                color = Color.Red,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
 
         Button(
-            onClick = { /* Lógica de login o registro aquí */ },
-            modifier = Modifier.fillMaxWidth().height(52.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = AuthStyle.Lime),
-            shape = RoundedCornerShape(16.dp)
+            onClick = { if (isLoginMode) viewModel.signIn() else viewModel.register() },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = limeGreen),
+            shape = RoundedCornerShape(12.dp),
+            enabled = !state.isSubmitting
         ) {
             Text(
-                text = if (isRegistering) "Crear cuenta" else "Entrar",
+                text = if (isLoginMode) "Iniciar sesión" else "Crear cuenta",
                 color = Color.Black,
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp
             )
         }
-    }
-}
 
-@Composable
-private fun AuthToggleText(isRegistering: Boolean, onToggle: () -> Unit) {
-    Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
+        Spacer(modifier = Modifier.height(16.dp))
+
         Text(
-            text = if (isRegistering) "¿Ya tienes cuenta? " else "¿No tienes cuenta? ",
+            text = "¿Ya tienes cuenta? Inicia sesión",
             color = Color.White,
-            fontSize = 14.sp
+            fontSize = 12.sp
         )
+
+        Spacer(modifier = Modifier.height(24.dp))
+        Text(text = "o", color = lightGrayText, fontSize = 12.sp)
+        Spacer(modifier = Modifier.height(24.dp))
+
+        OutlinedButton(
+            onClick = viewModel::signInWithGoogle,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
+            border = androidx.compose.foundation.BorderStroke(1.dp, darkGray),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Text("Continuar con Google", color = Color.White)
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
         Text(
-            text = if (isRegistering) "Inicia sesión" else "Regístrate",
-            color = AuthStyle.Lime,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.SemiBold,
-            textDecoration = TextDecoration.Underline,
-            modifier = Modifier.clickable { onToggle() }
+            text = "Al continuar aceptas los términos",
+            color = lightGrayText,
+            fontSize = 12.sp
         )
+        Spacer(modifier = Modifier.height(24.dp))
+    }
+
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let { millis ->
+                            val localDate = Instant.ofEpochMilli(millis)
+                                .atZone(ZoneId.of("UTC"))
+                                .toLocalDate()
+
+                            viewModel.updateBirthday(localDate)
+                        }
+                        showDatePicker = false
+                    }
+                ) {
+                    Text("Aceptar", color = limeGreen)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text("Cancelar", color = Color.White)
+                }
+            },
+            colors = DatePickerDefaults.colors(
+                containerColor = darkGray
+            )
+        ) {
+            DatePicker(
+                state = datePickerState,
+                showModeToggle = false,
+                colors = DatePickerDefaults.colors(
+                    containerColor = darkGray,
+                    titleContentColor = limeGreen,
+                    headlineContentColor = Color.White,
+                    weekdayContentColor = lightGrayText,
+                    dayContentColor = Color.White,
+                    todayContentColor = limeGreen,
+                    todayDateBorderColor = limeGreen,
+                    selectedDayContainerColor = limeGreen,
+                    selectedDayContentColor = Color.Black
+                )
+            )
+        }
     }
 }
 
 @Composable
-private fun AuthSocialAccess(onGoogleSignIn: () -> Unit) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(modifier = Modifier.weight(1f).height(1.dp).background(AuthStyle.Border))
-            Text(" o ", color = AuthStyle.Muted, modifier = Modifier.padding(horizontal = 8.dp))
-            Box(modifier = Modifier.weight(1f).height(1.dp).background(AuthStyle.Border))
-        }
-        Spacer(modifier = Modifier.height(18.dp))
-        Button(
-            onClick = onGoogleSignIn,
-            modifier = Modifier.fillMaxWidth().height(52.dp).border(1.dp, AuthStyle.Border, RoundedCornerShape(16.dp)),
-            colors = ButtonDefaults.buttonColors(containerColor = AuthStyle.Surface),
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Text("Continuar con Google", color = Color.White, fontWeight = FontWeight.SemiBold)
-        }
+fun AuthTab(text: String, isSelected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val backgroundColor = if (isSelected) Color(0xFF2C2C2E) else Color.Transparent
+    Box(
+        modifier = modifier
+            .background(backgroundColor, RoundedCornerShape(10.dp))
+            .clickable { onClick() }
+            .padding(vertical = 12.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = text,
+            color = if (isSelected) Color.White else Color(0xFFA0A0A0),
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+        )
     }
 }
 
-// Custom Modifier for text fields to keep them DRY (Don't Repeat Yourself)
-fun Modifier.authFieldStyle() = this
-    .background(AuthStyle.Surface, RoundedCornerShape(16.dp))
-    .border(1.dp, AuthStyle.Border, RoundedCornerShape(16.dp))
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CustomTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    isPassword: Boolean = false,
+    passwordVisible: Boolean = false,
+    onPasswordToggle: () -> Unit = {},
+    isReadOnly: Boolean = false,
+    trailingIcon: @Composable (() -> Unit)? = null
+) {
+    val limeGreen = Color(0xFFCEF242)
+    val darkGray = Color(0xFF1C1C1E)
+
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        readOnly = isReadOnly,
+        placeholder = { Text(label, color = Color.Gray) },
+        singleLine = true,
+        visualTransformation = if (isPassword && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
+        trailingIcon = {
+            if (isPassword) {
+                Text(
+                    text = if (passwordVisible) "Ocultar" else "Ver",
+                    color = Color.Gray,
+                    modifier = Modifier
+                        .clickable { onPasswordToggle() }
+                        .padding(end = 16.dp),
+                    fontSize = 14.sp
+                )
+            }
+            else {
+                trailingIcon?.invoke()
+            }
+        },
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedTextColor = Color.White,
+            unfocusedTextColor = Color.White,
+            focusedContainerColor = darkGray,
+            unfocusedContainerColor = darkGray,
+            focusedBorderColor = limeGreen,
+            unfocusedBorderColor = darkGray,
+            cursorColor = limeGreen
+        )
+    )
+}
