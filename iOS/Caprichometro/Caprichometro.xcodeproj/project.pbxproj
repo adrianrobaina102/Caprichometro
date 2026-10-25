@@ -18,7 +18,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		33CE4546308CC8630021A222 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+		33CE4546308CC8630021A222 /* Exceptions for "Caprichometro" folder in "Caprichometro" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
@@ -31,7 +31,7 @@
 		33554D61308BED7300FD809A /* Caprichometro */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				33CE4546308CC8630021A222 /* PBXFileSystemSynchronizedBuildFileExceptionSet */,
+				33CE4546308CC8630021A222 /* Exceptions for "Caprichometro" folder in "Caprichometro" target */,
 			);
 			path = Caprichometro;
 			sourceTree = "<group>";
