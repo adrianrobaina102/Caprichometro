@@ -20,6 +20,7 @@ import com.example.caprichometro.application.usecase.auth.SignInUseCase
 import com.example.caprichometro.application.usecase.auth.SignInWithGoogleUseCase
 import com.example.caprichometro.infrastructure.auth.FirebaseAuthRepository
 import com.example.caprichometro.infrastructure.data.FirestoreCapriceRepository
+import com.example.caprichometro.infrastructure.data.FirestoreUserProfileRepository
 import com.example.caprichometro.infrastructure.ui.auth.AuthScreen
 import com.example.caprichometro.infrastructure.ui.auth.AuthViewModel
 
@@ -32,9 +33,11 @@ class MainActivity : ComponentActivity() {
         val getCapricesUseCase = GetCapricesUseCase(capriceRepository)
         val capriceViewModel = CapriceViewModel(saveCapriceUseCase, getCapricesUseCase)
 
+        val userProfileRepository = FirestoreUserProfileRepository()
+
         val authRepository = FirebaseAuthRepository()
         val signInUseCase = SignInUseCase(authRepository)
-        val registerUseCase = RegisterUseCase(authRepository)
+        val registerUseCase = RegisterUseCase(authRepository, userProfileRepository)
         val signInWithGoogleUseCase = SignInWithGoogleUseCase(authRepository)
         val authViewModel = AuthViewModel(signInUseCase, registerUseCase, signInWithGoogleUseCase)
 

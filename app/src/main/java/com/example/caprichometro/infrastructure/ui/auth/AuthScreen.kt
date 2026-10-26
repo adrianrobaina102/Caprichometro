@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Visibility
@@ -28,12 +29,16 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.caprichometro.R
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
 
 val DarkBackground = Color(0xFF121212)
 val LimeGreen = Color(0xFFD4FF00)
 val DarkSurface = Color(0xFF1E1E1E)
 val BorderGray = Color(0xFF2A2A2A)
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AuthScreen(
     viewModel: AuthViewModel,
@@ -47,6 +52,11 @@ fun AuthScreen(
     var password by remember { mutableStateOf("") }
     var isPasswordVisible by remember { mutableStateOf(false) }
 
+    // Nuevas variables para el registro
+    var username by remember { mutableStateOf("") }
+    var birthday by remember { mutableStateOf<LocalDate?>(null) }
+    var showDatePicker by remember { mutableStateOf(false) }
+
     LaunchedEffect(state.isAuthSuccessful) {
         if (state.isAuthSuccessful) {
             onNavigateToHome()
@@ -57,6 +67,41 @@ fun AuthScreen(
         state.errorMessage?.let {
             Toast.makeText(context, it, Toast.LENGTH_LONG).show()
             viewModel.clearError()
+        }
+    }
+
+    // Lógica del calendario (DatePicker)
+    if (showDatePicker) {
+        val datePickerState = rememberDatePickerState()
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDatePicker = false
+                    datePickerState.selectedDateMillis?.let { millis ->
+                        val localDate = Instant.ofEpochMilli(millis)
+                            .atZone(ZoneId.systemDefault())
+                            .toLocalDate()
+                        birthday = localDate
+                    }
+                }) { Text("Aceptar", color = LimeGreen) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancelar", color = Color.Gray) }
+            },
+            colors = DatePickerDefaults.colors(containerColor = DarkSurface)
+        ) {
+            DatePicker(
+                state = datePickerState,
+                colors = DatePickerDefaults.colors(
+                    titleContentColor = LimeGreen,
+                    headlineContentColor = Color.White,
+                    weekdayContentColor = Color.Gray,
+                    dayContentColor = Color.White,
+                    selectedDayContainerColor = LimeGreen,
+                    selectedDayContentColor = Color.Black
+                )
+            )
         }
     }
 
@@ -112,11 +157,57 @@ fun AuthScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
+        // CAMPOS CONDICIONALES DE REGISTRO
+        if (!isLoginMode) {
+            OutlinedTextField(
+                value = username,
+                onValueChange = { username = it },
+                placeholder = { Text("Nombre de usuario (@usuario)", color = Color.Gray) },
+                leadingIcon = { Icon(Icons.Default.Person, contentDescription = "Usuario", tint = Color.Gray) },
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp),
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = DarkBackground,
+                    unfocusedContainerColor = DarkBackground,
+                    focusedIndicatorColor = LimeGreen,
+                    unfocusedIndicatorColor = DarkSurface,
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White
+                ),
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Box(modifier = Modifier.fillMaxWidth().clickable { showDatePicker = true }) {
+                OutlinedTextField(
+                    value = birthday?.toString() ?: "",
+                    onValueChange = {},
+                    placeholder = { Text("Fecha de nacimiento (AAAA-MM-DD)", color = Color.Gray) },
+                    leadingIcon = { Icon(Icons.Default.DateRange, contentDescription = "Fecha", tint = Color.Gray) },
+                    enabled = false, // Lo desactivamos para que no se abra el teclado, solo el calendario al hacer clic en la caja
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = TextFieldDefaults.colors(
+                        disabledContainerColor = DarkBackground,
+                        disabledIndicatorColor = DarkSurface,
+                        disabledTextColor = Color.White,
+                        disabledPlaceholderColor = Color.Gray,
+                        disabledLeadingIconColor = Color.Gray
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
+        // CAMPOS DE EMAIL Y CONTRASEÑA (Siempre visibles)
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
-            placeholder = { Text("Correo o usuario", color = Color.Gray) },
-            leadingIcon = { Icon(Icons.Default.Person, contentDescription = "Usuario", tint = Color.Gray) },
+            placeholder = { Text("Correo electrónico", color = Color.Gray) },
+            leadingIcon = { Icon(Icons.Default.Person, contentDescription = "Correo", tint = Color.Gray) },
             singleLine = true,
             shape = RoundedCornerShape(12.dp),
             colors = TextFieldDefaults.colors(
@@ -162,11 +253,16 @@ fun AuthScreen(
 
         Button(
             onClick = {
+                // Actualizamos estado en el ViewModel antes de disparar la acción
                 viewModel.updateEmail(email)
                 viewModel.updatePassword(password)
+
                 if (isLoginMode) {
                     viewModel.signIn()
                 } else {
+                    // Si estamos registrando, pasamos también el usuario y la fecha
+                    viewModel.updateName(username)
+                    birthday?.let { viewModel.updateBirthday(it) }
                     viewModel.register()
                 }
             },
@@ -228,7 +324,7 @@ fun AuthScreen(
             Image(
                 painter = painterResource(id = R.drawable.ic_caprichometro_logo),
                 contentDescription = "Logo Caprichómetro",
-                modifier = Modifier.size(90.dp)
+                modifier = Modifier.size(24.dp) // Reduje un poco el tamaño del logo para que encaje mejor
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text("Continuar con Google", fontWeight = FontWeight.Medium)
