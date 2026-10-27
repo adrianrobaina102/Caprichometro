@@ -1,16 +1,18 @@
 package com.example.caprichometro.infrastructure.ui.friendship
 
+import com.example.caprichometro.application.usecase.friendship.GetAcceptedFriendsUseCase
 import com.example.caprichometro.application.usecase.friendship.SearchUserByUsernameUseCase
 import com.example.caprichometro.application.usecase.friendship.SendFriendRequestUseCase
+import com.example.caprichometro.application.usecase.friendship.GetIncomingFriendRequestsUseCase
+import com.example.caprichometro.application.usecase.friendship.RespondToFriendRequestUseCase
 import com.example.caprichometro.domain.model.UserProfile
+import com.example.caprichometro.domain.model.IncomingFriendRequest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.caprichometro.application.usecase.friendship.GetIncomingFriendRequestsUseCase
-import com.example.caprichometro.domain.model.IncomingFriendRequest
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
@@ -21,13 +23,16 @@ data class FriendshipSearchState(
     val userFound: UserProfile? = null,
     val errorMessage: String? = null,
     val requestSentSuccess: Boolean = false,
-    val incomingRequests: List<IncomingFriendRequest> = emptyList()
+    val incomingRequests: List<IncomingFriendRequest> = emptyList(),
+    val friends: List<UserProfile> = emptyList()
 )
 
 class FriendshipViewModel(
     private val searchUserByUsernameUseCase: SearchUserByUsernameUseCase,
     private val sendFriendRequestUseCase: SendFriendRequestUseCase,
-    private val getIncomingFriendRequestsUseCase: GetIncomingFriendRequestsUseCase
+    private val getIncomingFriendRequestsUseCase: GetIncomingFriendRequestsUseCase,
+    private val respondToFriendRequestUseCase: RespondToFriendRequestUseCase,
+    private val getAcceptedFriendsUseCase: GetAcceptedFriendsUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(FriendshipSearchState())
@@ -41,15 +46,30 @@ class FriendshipViewModel(
         // Cancelamos cualquier escucha previa para evitar fugas o dobles suscriptores
         listenRequestsJob?.cancel()
         listenRequestsJob = viewModelScope.launch {
-            getIncomingFriendRequestsUseCase.execute(currentUserId)
-                .catch { e ->
-                    android.util.Log.e("FriendshipViewModel", "Error al escuchar solicitudes: ${e.message}", e)
-                    _state.update { it.copy(errorMessage = "Error al recibir solicitudes: ${e.message}") }
-                }
-                .collect { requests ->
-                    android.util.Log.d("FriendshipViewModel", "Solicitudes recibidas: ${requests.size}")
-                    _state.update { it.copy(incomingRequests = requests) }
-                }
+            // Escuchamos solicitudes pendientes
+            launch {
+                getIncomingFriendRequestsUseCase.execute(currentUserId)
+                    .catch { e ->
+                        android.util.Log.e("FriendshipViewModel", "Error al escuchar solicitudes: ${e.message}", e)
+                        _state.update { it.copy(errorMessage = "Error al recibir solicitudes: ${e.message}") }
+                    }
+                    .collect { requests ->
+                        android.util.Log.d("FriendshipViewModel", "Solicitudes recibidas: ${requests.size}")
+                        _state.update { it.copy(incomingRequests = requests) }
+                    }
+            }
+
+            // Escuchamos amistades aceptadas en tiempo real
+            launch {
+                getAcceptedFriendsUseCase.execute(currentUserId)
+                    .catch { e ->
+                        android.util.Log.e("FriendshipViewModel", "Error al escuchar amigos: ${e.message}", e)
+                    }
+                    .collect { friendsList ->
+                        android.util.Log.d("FriendshipViewModel", "Amigos aceptados: ${friendsList.size}")
+                        _state.update { it.copy(friends = friendsList) }
+                    }
+            }
         }
     }
 
@@ -102,6 +122,28 @@ class FriendshipViewModel(
                 },
                 onFailure = { error ->
                     _state.update { it.copy(isLoading = false, errorMessage = error.message ?: "Error al enviar la solicitud.") }
+                }
+            )
+        }
+    }
+
+    fun acceptRequest(friendshipId: String) {
+        respondToRequest(friendshipId, accept = true)
+    }
+
+    fun declineRequest(friendshipId: String) {
+        respondToRequest(friendshipId, accept = false)
+    }
+
+    private fun respondToRequest(friendshipId: String, accept: Boolean) {
+        viewModelScope.launch {
+            val result = respondToFriendRequestUseCase.execute(friendshipId, accept)
+            result.fold(
+                onSuccess = {
+                    // La actualización en Firestore dispara automáticamente el snapshotListener
+                },
+                onFailure = { error ->
+                    _state.update { it.copy(errorMessage = error.message ?: "Error al responder a la solicitud") }
                 }
             )
         }

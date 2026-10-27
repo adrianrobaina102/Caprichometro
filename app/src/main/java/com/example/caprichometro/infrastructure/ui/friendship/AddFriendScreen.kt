@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -42,7 +43,7 @@ fun AddFriendScreen(
         currentUserId.ifBlank { FirebaseAuth.getInstance().currentUser?.uid.orEmpty() }
     }
 
-    // Escuchador de las solicitudes en tiempo real
+    // Escuchador de las solicitudes y amistades en tiempo real
     LaunchedEffect(actualUserId) {
         if (actualUserId.isNotBlank()) {
             viewModel.listenToIncomingRequests(actualUserId)
@@ -242,7 +243,7 @@ fun AddFriendScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Button(
-                                onClick = { /* TODO: Aceptar (lo haremos en el siguiente paso) */ },
+                                onClick = { viewModel.acceptRequest(request.friendshipId) },
                                 colors = ButtonDefaults.buttonColors(containerColor = LimeGreen, contentColor = Color.Black),
                                 modifier = Modifier.weight(1f)
                             ) {
@@ -252,7 +253,7 @@ fun AddFriendScreen(
                             }
 
                             Button(
-                                onClick = { /* TODO: Rechazar (lo haremos en el siguiente paso) */ },
+                                onClick = { viewModel.declineRequest(request.friendshipId) },
                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF333333), contentColor = Color.White),
                                 modifier = Modifier.weight(1f)
                             ) {
@@ -260,6 +261,106 @@ fun AddFriendScreen(
                                 Spacer(Modifier.width(4.dp))
                                 Text("Rechazar")
                             }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 5. SECCIÓN VISUAL DE AMISTADES ACEPTADAS
+        Spacer(modifier = Modifier.height(32.dp))
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "Mis amigos",
+                color = Color.White,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold
+            )
+            if (state.friends.isNotEmpty()) {
+                Surface(
+                    color = Color(0xFF2A2A2A),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(
+                        text = "${state.friends.size}",
+                        color = Color.White,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                    )
+                }
+            }
+        }
+
+        if (state.friends.isEmpty()) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Aún no tienes amigos agregados",
+                        color = Color.Gray,
+                        fontSize = 14.sp
+                    )
+                }
+            }
+        } else {
+            state.friends.forEach { friend ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
+                    colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Surface(
+                            modifier = Modifier.size(40.dp),
+                            shape = RoundedCornerShape(20.dp),
+                            color = LimeGreen.copy(alpha = 0.2f)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.Person,
+                                    contentDescription = null,
+                                    tint = LimeGreen,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        }
+
+                        Column {
+                            Text(
+                                text = "@${friend.username}",
+                                color = Color.White,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "Amigo",
+                                color = Color.Gray,
+                                fontSize = 12.sp
+                            )
                         }
                     }
                 }

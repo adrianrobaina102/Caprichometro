@@ -44,23 +44,57 @@ class FirestoreUserProfileRepository (private val db: FirebaseFirestore = Fireba
     override suspend fun getUserById(userId: String): Result<UserProfile?> {
         return try {
             val userDoc = db.collection("users").document(userId).get().await()
-            if (!userDoc.exists()) {
+            var username = if (userDoc.exists()) userDoc.getString("username") else null
+
+            // Si no se encuentra el username en users/{id} (documento ausente o campo vacío),
+            // consultamos la colección pública 'usernames' que mapea {uid} con el ID del documento
+            if (username.isNullOrBlank()) {
+                val usernameSnapshot = db.collection("usernames")
+                    .whereEqualTo("uid", userId)
+                    .limit(1)
+                    .get()
+                    .await()
+                username = usernameSnapshot.documents.firstOrNull()?.id
+            }
+
+            if (username.isNullOrBlank()) {
                 return Result.success(null)
             }
 
             val createdAt = try {
                 userDoc.getDate("createdAt") ?: userDoc.getLong("createdAt")?.let { Date(it) } ?: Date()
             } catch (e: Exception) {
-                userDoc.getLong("createdAt")?.let { Date(it) } ?: Date()
+                Date()
             }
 
             val profile = UserProfile(
                 uid = userId,
-                username = userDoc.getString("username") ?: "Usuario",
+                username = username,
                 createdAt = createdAt
             )
             Result.success(profile)
         } catch (e: Exception) {
+            android.util.Log.e("FirestoreUserProfile", "Error consultando users/$userId: ${e.message}")
+            // Fallback en caso de excepción (por ejemplo, PERMISSION_DENIED en users/{id})
+            try {
+                val usernameSnapshot = db.collection("usernames")
+                    .whereEqualTo("uid", userId)
+                    .limit(1)
+                    .get()
+                    .await()
+                val foundUsername = usernameSnapshot.documents.firstOrNull()?.id
+                if (!foundUsername.isNullOrBlank()) {
+                    return Result.success(
+                        UserProfile(
+                            uid = userId,
+                            username = foundUsername,
+                            createdAt = Date()
+                        )
+                    )
+                }
+            } catch (fallbackError: Exception) {
+                android.util.Log.e("FirestoreUserProfile", "Fallback a usernames falló: ${fallbackError.message}")
+            }
             Result.failure(e)
         }
     }

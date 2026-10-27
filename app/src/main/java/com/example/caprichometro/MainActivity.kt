@@ -25,7 +25,9 @@ import com.example.caprichometro.application.usecase.SaveCapriceUseCase
 import com.example.caprichometro.application.usecase.auth.RegisterUseCase
 import com.example.caprichometro.application.usecase.auth.SignInUseCase
 import com.example.caprichometro.application.usecase.auth.SignInWithGoogleUseCase
+import com.example.caprichometro.application.usecase.friendship.GetAcceptedFriendsUseCase
 import com.example.caprichometro.application.usecase.friendship.GetIncomingFriendRequestsUseCase
+import com.example.caprichometro.application.usecase.friendship.RespondToFriendRequestUseCase
 import com.example.caprichometro.application.usecase.friendship.SearchUserByUsernameUseCase
 import com.example.caprichometro.application.usecase.friendship.SendFriendRequestUseCase
 import com.example.caprichometro.infrastructure.auth.FirebaseAuthRepository
@@ -61,7 +63,15 @@ class MainActivity : ComponentActivity() {
         val searchUserUseCase = SearchUserByUsernameUseCase(friendshipRepository)
         val sendRequestUseCase = SendFriendRequestUseCase(friendshipRepository)
         val getIncomingRequestsUseCase = GetIncomingFriendRequestsUseCase(friendshipRepository, userProfileRepository)
-        val friendshipViewModel = FriendshipViewModel(searchUserUseCase, sendRequestUseCase, getIncomingRequestsUseCase)
+        val respondToRequestUseCase = RespondToFriendRequestUseCase(friendshipRepository)
+        val getAcceptedFriendsUseCase = GetAcceptedFriendsUseCase(friendshipRepository, userProfileRepository)
+        val friendshipViewModel = FriendshipViewModel(
+            searchUserUseCase,
+            sendRequestUseCase,
+            getIncomingRequestsUseCase,
+            respondToRequestUseCase,
+            getAcceptedFriendsUseCase
+        )
 
         setContent {
             CapriceApp(authViewModel, capriceViewModel, friendshipViewModel)
@@ -81,7 +91,7 @@ fun CapriceApp(
 
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
-    // Escuchamos solicitudes pendientes en tiempo real en cuanto el usuario inicia sesión
+    // Escuchamos solicitudes pendientes y amigos en tiempo real en cuanto el usuario inicia sesión
     LaunchedEffect(authState.isAuthSuccessful, currentUserId) {
         if (authState.isAuthSuccessful && currentUserId.isNotBlank()) {
             friendshipViewModel.listenToIncomingRequests(currentUserId)
