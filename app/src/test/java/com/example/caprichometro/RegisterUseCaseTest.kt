@@ -84,4 +84,24 @@ class RegisterUseCaseTest {
         // Verificamos que llamó al batch de Firestore correctamente
         coVerify(exactly = 1) { userProfileRepository.saveProfile(match { it.uid == "uid123" && it.username == "adrian_dev" }) }
     }
+
+    @Test
+    fun `normaliza el nombre de usuario eliminando arrobas, espacios y mayusculas`() = runTest {
+        val mockUser = User(id = "uid123", email = "test@mail.com", name = "adrian_dev")
+
+        coEvery { userProfileRepository.isUsernameAvailable("adrian_dev") } returns Result.success(true)
+        coEvery { authRepository.register(any(), any(), "adrian_dev") } returns Result.success(mockUser)
+        coEvery { userProfileRepository.saveProfile(any()) } returns Result.success(Unit)
+
+        // Enviamos el usuario con espacios, @ inicial y mayúsculas
+        val result = useCase.execute("test@mail.com", "123456", "  @Adrian_Dev  ")
+
+        assertTrue(result.isSuccess)
+        // Verificamos que se consultó disponibilidad con el usuario normalizado
+        coVerify(exactly = 1) { userProfileRepository.isUsernameAvailable("adrian_dev") }
+        // Verificamos que se registró en Auth con el usuario normalizado
+        coVerify(exactly = 1) { authRepository.register("test@mail.com", "123456", "adrian_dev") }
+        // Verificamos que se guardó en Firestore con el usuario normalizado
+        coVerify(exactly = 1) { userProfileRepository.saveProfile(match { it.username == "adrian_dev" }) }
+    }
 }

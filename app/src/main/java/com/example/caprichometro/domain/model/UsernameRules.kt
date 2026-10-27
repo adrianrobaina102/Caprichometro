@@ -1,9 +1,13 @@
 package com.example.caprichometro.domain.model
 
-object UsernameRules
-{
-    fun isValid(username: String): Boolean
-    {
+object UsernameRules {
+
+    // <-- AÑADIR AQUÍ: Regla pura de normalización de username (sin dependencias externas)
+    fun normalize(username: String): String {
+        return username.trim().removePrefix("@").lowercase()
+    }
+
+    fun isValid(username: String): Boolean {
         val regex = "^[a-zA-Z0-9_]{3,15}$".toRegex()
         return regex.matches(username)
     }

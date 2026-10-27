@@ -25,10 +25,17 @@ class FirestoreFriendshipRepository(
             if (!userDoc.exists()) {
                 return Result.success(null)
             }
+
+            val createdAt = try {
+                userDoc.getDate("createdAt") ?: userDoc.getLong("createdAt")?.let { Date(it) } ?: Date()
+            } catch (e: Exception) {
+                userDoc.getLong("createdAt")?.let { Date(it) } ?: Date()
+            }
+
             val profile = UserProfile(
                 uid = uid,
-                username = username,
-                createdAt = userDoc.getDate("createdAt") ?: Date()
+                username = userDoc.getString("username") ?: username,
+                createdAt = createdAt
             )
             Result.success(profile)
         }catch (e: Exception) {
@@ -60,7 +67,10 @@ class FirestoreFriendshipRepository(
     ): Result<Unit> {
         return try {
             db.collection("friendships").document(friendshipId)
-                .update("status", status.name).await()
+                .update(
+                    "status", status.value,
+                    "updatedAt", Date()
+                ).await()
             Result.success(Unit)
         }catch (e: Exception) {
             Result.failure(e)
@@ -72,25 +82,56 @@ class FirestoreFriendshipRepository(
             .whereArrayContains("memberIDs", userId)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
+                    android.util.Log.e("FirestoreFriendship", "Error en SnapshotListener: ${error.message}", error)
                     close(error)
                     return@addSnapshotListener
                 }
-                if(snapshot != null)
-                {
-                    val friendships = snapshot.documents.mapNotNull {
-                        doc ->
+                if (snapshot != null) {
+                    val friendships = snapshot.documents.mapNotNull { doc ->
                         try {
-                            val statusString = doc.getString("status") ?: "pending"
-                            val mappedStatus = FriendshipStatus.values().firstOrNull { it.value == statusString } ?: FriendshipStatus.PENDING
+                            val id = doc.getString("id") ?: doc.id
+
+                            val rawMembers = doc.get("memberIDs") as? List<*>
+                            val memberIDs = rawMembers?.mapNotNull { it?.toString() }
+                                ?: run {
+                                    val u1 = doc.getString("user1Id")
+                                    val u2 = doc.getString("user2Id")
+                                    if (u1 != null && u2 != null) listOf(u1, u2) else null
+                                }
+                                ?: return@mapNotNull null
+
+                            val requestedBy = doc.getString("requestedBy")
+                                ?: doc.getString("senderId")
+                                ?: doc.getString("user1Id")
+                                ?: return@mapNotNull null
+
+                            val statusString = doc.getString("status")?.lowercase() ?: "pending"
+                            val mappedStatus = FriendshipStatus.values().firstOrNull {
+                                it.value.equals(statusString, ignoreCase = true) || it.name.equals(statusString, ignoreCase = true)
+                            } ?: FriendshipStatus.PENDING
+
+                            val createdAt = try {
+                                doc.getDate("createdAt") ?: doc.getLong("createdAt")?.let { Date(it) } ?: Date()
+                            } catch (e: Exception) {
+                                doc.getLong("createdAt")?.let { Date(it) } ?: Date()
+                            }
+
+                            val updatedAt = try {
+                                doc.getDate("updatedAt") ?: doc.getLong("updatedAt")?.let { Date(it) } ?: Date()
+                            } catch (e: Exception) {
+                                doc.getLong("updatedAt")?.let { Date(it) } ?: Date()
+                            }
+
                             Friendship(
-                                id = doc.getString("id") ?: return@mapNotNull null,
-                                memberIDs = doc.get("memberIDs") as? List<String> ?: return@mapNotNull null,
-                                requestedBy = doc.getString("requestedBy") ?: return@mapNotNull null,
+                                id = id,
+                                memberIDs = memberIDs,
+                                requestedBy = requestedBy,
                                 status = mappedStatus,
-                                createdAt = doc.getDate("createdAt") ?: java.util.Date(),
-                                updatedAt = doc.getDate("updatedAt") ?: java.util.Date()
+                                createdAt = createdAt,
+                                updatedAt = updatedAt
                             )
                         } catch (e: Exception) {
+                            android.util.Log.e("FirestoreFriendship", "Error parseando amistad ${doc.id}: ${e.message}", e)
                             null
                         }
                     }

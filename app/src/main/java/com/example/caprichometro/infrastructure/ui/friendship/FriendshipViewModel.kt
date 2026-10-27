@@ -11,6 +11,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.caprichometro.application.usecase.friendship.GetIncomingFriendRequestsUseCase
 import com.example.caprichometro.domain.model.IncomingFriendRequest
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 
 data class FriendshipSearchState(
@@ -22,26 +24,43 @@ data class FriendshipSearchState(
     val incomingRequests: List<IncomingFriendRequest> = emptyList()
 )
 
-class FriendshipViewModel
-    (private val searchUserByUsernameUseCase: SearchUserByUsernameUseCase, private val sendFriendRequestUseCase: SendFriendRequestUseCase, private val getIncomingFriendRequestsUseCase: GetIncomingFriendRequestsUseCase)
-    : ViewModel()
-{
+class FriendshipViewModel(
+    private val searchUserByUsernameUseCase: SearchUserByUsernameUseCase,
+    private val sendFriendRequestUseCase: SendFriendRequestUseCase,
+    private val getIncomingFriendRequestsUseCase: GetIncomingFriendRequestsUseCase
+) : ViewModel() {
+
     private val _state = MutableStateFlow(FriendshipSearchState())
     val state: StateFlow<FriendshipSearchState> = _state.asStateFlow()
+
+    private var listenRequestsJob: Job? = null
+
     fun listenToIncomingRequests(currentUserId: String) {
-        viewModelScope.launch {
-            getIncomingFriendRequestsUseCase.execute(currentUserId).collect { requests ->
-                _state.update { it.copy(incomingRequests = requests) }
-            }
+        if (currentUserId.isBlank()) return
+
+        // Cancelamos cualquier escucha previa para evitar fugas o dobles suscriptores
+        listenRequestsJob?.cancel()
+        listenRequestsJob = viewModelScope.launch {
+            getIncomingFriendRequestsUseCase.execute(currentUserId)
+                .catch { e ->
+                    android.util.Log.e("FriendshipViewModel", "Error al escuchar solicitudes: ${e.message}", e)
+                    _state.update { it.copy(errorMessage = "Error al recibir solicitudes: ${e.message}") }
+                }
+                .collect { requests ->
+                    android.util.Log.d("FriendshipViewModel", "Solicitudes recibidas: ${requests.size}")
+                    _state.update { it.copy(incomingRequests = requests) }
+                }
         }
     }
-    fun updateSearchQuery(query: String)
-    {
-        _state.update {it.copy(searchQuery = query, errorMessage = null, userFound = null, requestSentSuccess = false)}
+
+    fun updateSearchQuery(query: String) {
+        _state.update { it.copy(searchQuery = query, errorMessage = null, userFound = null, requestSentSuccess = false) }
     }
+
     fun clearError() {
         _state.update { it.copy(errorMessage = null) }
     }
+
     fun searchUser() {
         val query = _state.value.searchQuery
         if (query.isBlank()) return
@@ -65,6 +84,7 @@ class FriendshipViewModel
             )
         }
     }
+
     fun sendRequest(currentUserId: String) {
         val targetUser = _state.value.userFound ?: return
 

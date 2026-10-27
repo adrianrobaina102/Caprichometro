@@ -20,7 +20,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-// Colores de tu app
+import com.google.firebase.auth.FirebaseAuth
+
+// Colores de la app
 val DarkBackground = Color(0xFF121212)
 val LimeGreen = Color(0xFFD4FF00)
 val DarkSurface = Color(0xFF1E1E1E)
@@ -34,12 +36,19 @@ fun AddFriendScreen(
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
     val scrollState = rememberScrollState()
-    // Escuchador de las solicitud en tiempo reaal
-    LaunchedEffect(currentUserId) {
-        if (currentUserId.isNotBlank()) {
-            viewModel.listenToIncomingRequests(currentUserId)
+
+    // Obtenemos el UID actual garantizado (si por recomposición vino vacío)
+    val actualUserId = remember(currentUserId) {
+        currentUserId.ifBlank { FirebaseAuth.getInstance().currentUser?.uid.orEmpty() }
+    }
+
+    // Escuchador de las solicitudes en tiempo real
+    LaunchedEffect(actualUserId) {
+        if (actualUserId.isNotBlank()) {
+            viewModel.listenToIncomingRequests(actualUserId)
         }
     }
+
     // Escuchador de errores para mostrar un mensajito flotante
     LaunchedEffect(state.errorMessage) {
         state.errorMessage?.let {
@@ -47,6 +56,7 @@ fun AddFriendScreen(
             viewModel.clearError()
         }
     }
+
     // Escuchador de éxito al enviar solicitud
     LaunchedEffect(state.requestSentSuccess) {
         if (state.requestSentSuccess) {
@@ -72,7 +82,7 @@ fun AddFriendScreen(
             modifier = Modifier.padding(bottom = 24.dp)
         )
 
-
+        // 1. CAMPO DE BÚSQUEDA
         OutlinedTextField(
             value = state.searchQuery,
             onValueChange = { viewModel.updateSearchQuery(it) },
@@ -93,7 +103,7 @@ fun AddFriendScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 2. EL BOTÓN DE BÚSQUEDA
+        // 2. BOTÓN DE BÚSQUEDA
         Button(
             onClick = { viewModel.searchUser() },
             enabled = state.searchQuery.isNotBlank() && !state.isLoading,
@@ -116,7 +126,7 @@ fun AddFriendScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // 3. LA TARJETA DEL USUARIO ENCONTRADO
+        // 3. TARJETA DEL USUARIO ENCONTRADO
         state.userFound?.let { user ->
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -138,7 +148,7 @@ fun AddFriendScreen(
                     )
 
                     IconButton(
-                        onClick = { viewModel.sendRequest(currentUserId) }
+                        onClick = { viewModel.sendRequest(actualUserId) }
                     ) {
                         Icon(
                             imageVector = Icons.Default.PersonAdd,
@@ -148,69 +158,112 @@ fun AddFriendScreen(
                     }
                 }
             }
+            Spacer(modifier = Modifier.height(16.dp))
         }
 
+        // 4. SECCIÓN VISUAL DE SOLICITUDES PENDIENTES
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "Solicitudes pendientes",
+                color = Color.White,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold
+            )
+            if (state.incomingRequests.isNotEmpty()) {
+                Surface(
+                    color = LimeGreen,
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(
+                        text = "${state.incomingRequests.size}",
+                        color = Color.Black,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                    )
+                }
+            }
+        }
 
-
-    // LISTA DE SOLICITUDES PENDIENTES
-    Spacer(modifier = Modifier.height(32.dp))
-
-    if (state.incomingRequests.isNotEmpty()) {
-        Text(
-            text = "Solicitudes pendientes",
-            color = Color.White,
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.align(Alignment.Start).padding(bottom = 16.dp)
-        )
-
-        state.incomingRequests.forEach { request ->
+        if (state.incomingRequests.isEmpty()) {
             Card(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = DarkSurface),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Column(modifier = Modifier.padding(16.dp).fillMaxWidth()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
                     Text(
-                        text = "@${request.sender.username}",
-                        color = Color.White,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "Quiere ser tu amigo.",
+                        text = "No tienes solicitudes pendientes",
                         color = Color.Gray,
-                        fontSize = 14.sp,
-                        modifier = Modifier.padding(bottom = 12.dp)
+                        fontSize = 14.sp
                     )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                }
+            }
+        } else {
+            state.incomingRequests.forEach { request ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
+                    colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .fillMaxWidth()
                     ) {
-                        Button(
-                            onClick = { /* TODO: Aceptar (lo haremos en el siguiente paso) */ },
-                            colors = ButtonDefaults.buttonColors(containerColor = LimeGreen, contentColor = Color.Black),
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Icon(Icons.Default.Check, contentDescription = "Aceptar", modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text("Aceptar")
-                        }
+                        Text(
+                            text = "@${request.sender.username}",
+                            color = Color.White,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "Quiere ser tu amigo.",
+                            color = Color.Gray,
+                            fontSize = 14.sp,
+                            modifier = Modifier.padding(bottom = 12.dp)
+                        )
 
-                        Button(
-                            onClick = { /* TODO: Rechazar (lo haremos en el siguiente paso) */ },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF333333), contentColor = Color.White),
-                            modifier = Modifier.weight(1f)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Icon(Icons.Default.Close, contentDescription = "Rechazar", modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text("Rechazar")
+                            Button(
+                                onClick = { /* TODO: Aceptar (lo haremos en el siguiente paso) */ },
+                                colors = ButtonDefaults.buttonColors(containerColor = LimeGreen, contentColor = Color.Black),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Icon(Icons.Default.Check, contentDescription = "Aceptar", modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text("Aceptar")
+                            }
+
+                            Button(
+                                onClick = { /* TODO: Rechazar (lo haremos en el siguiente paso) */ },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF333333), contentColor = Color.White),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Icon(Icons.Default.Close, contentDescription = "Rechazar", modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text("Rechazar")
+                            }
                         }
                     }
                 }
             }
         }
-    }
     }
 }

@@ -11,6 +11,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -76,6 +77,16 @@ fun CapriceApp(
 ) {
     val authState by authViewModel.state.collectAsState()
     val capriceState by capriceViewModel.state.collectAsState()
+    val friendshipState by friendshipViewModel.state.collectAsState()
+
+    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+
+    // Escuchamos solicitudes pendientes en tiempo real en cuanto el usuario inicia sesión
+    LaunchedEffect(authState.isAuthSuccessful, currentUserId) {
+        if (authState.isAuthSuccessful && currentUserId.isNotBlank()) {
+            friendshipViewModel.listenToIncomingRequests(currentUserId)
+        }
+    }
 
     var currentScreen by remember { mutableStateOf("create") }
 
@@ -112,7 +123,8 @@ fun CapriceApp(
                                 contentColor = Color.Black
                             )
                         ) {
-                            Text("Amigos")
+                            val pendingCount = friendshipState.incomingRequests.size
+                            Text(if (pendingCount > 0) "Amigos ($pendingCount)" else "Amigos")
                         }
                     }
                     Box(modifier = Modifier.weight(1f)) {
@@ -139,8 +151,6 @@ fun CapriceApp(
                                 )
                             }
                             "add_friend" -> {
-                                val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
-
                                 AddFriendScreen(
                                     viewModel = friendshipViewModel,
                                     currentUserId = currentUserId,

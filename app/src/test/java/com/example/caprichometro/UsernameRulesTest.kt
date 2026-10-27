@@ -1,10 +1,20 @@
 package com.example.caprichometro.domain.model
 
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 class UsernameRulesTest {
+
+    @Test
+    fun `normalize limpia espacios, arrobas iniciales y convierte a minusculas`() {
+        assertEquals("adrian_dev", UsernameRules.normalize("adrian_dev"))
+        assertEquals("adrian_dev", UsernameRules.normalize("  adrian_dev  "))
+        assertEquals("adrian_dev", UsernameRules.normalize("@adrian_dev"))
+        assertEquals("adrian_dev", UsernameRules.normalize("Adrian_Dev"))
+        assertEquals("adrian_dev", UsernameRules.normalize("  @Adrian_Dev  "))
+    }
 
     @Test
     fun `isValid devuelve true para nombres de usuario validos`() {

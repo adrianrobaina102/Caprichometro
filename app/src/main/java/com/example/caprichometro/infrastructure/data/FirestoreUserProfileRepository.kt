@@ -10,7 +10,7 @@ class FirestoreUserProfileRepository (private val db: FirebaseFirestore = Fireba
 {
     override suspend fun isUsernameAvailable(username: String): Result<Boolean> {
         return try {
-            val document = db.collection("usernames").document().get().await()
+            val document = db.collection("usernames").document(username).get().await()
             Result.success(!document.exists())
         }catch (e: Exception) {
             Result.failure(e)
@@ -40,6 +40,7 @@ class FirestoreUserProfileRepository (private val db: FirebaseFirestore = Fireba
             Result.failure(e)
         }
     }
+
     override suspend fun getUserById(userId: String): Result<UserProfile?> {
         return try {
             val userDoc = db.collection("users").document(userId).get().await()
@@ -47,15 +48,20 @@ class FirestoreUserProfileRepository (private val db: FirebaseFirestore = Fireba
                 return Result.success(null)
             }
 
+            val createdAt = try {
+                userDoc.getDate("createdAt") ?: userDoc.getLong("createdAt")?.let { Date(it) } ?: Date()
+            } catch (e: Exception) {
+                userDoc.getLong("createdAt")?.let { Date(it) } ?: Date()
+            }
+
             val profile = UserProfile(
                 uid = userId,
-                username = userDoc.getString("username") ?: "",
-                createdAt = userDoc.getDate("createdAt") ?: Date()
+                username = userDoc.getString("username") ?: "Usuario",
+                createdAt = createdAt
             )
             Result.success(profile)
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
-
 }

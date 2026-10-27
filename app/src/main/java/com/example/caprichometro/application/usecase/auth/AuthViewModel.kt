@@ -21,10 +21,13 @@ class RegisterUseCase(private val authRepository: AuthRepository,
 ) {
     suspend fun execute(email: String, password: String, username: String): Result<User> {
        return try {
-           if (!UsernameRules.isValid(username)) {
+           // <-- CAMBIO CLAVE: Normalizamos el nombre de usuario (sin espacios, sin '@', en minúsculas)
+           val normalizedUsername = UsernameRules.normalize(username)
+
+           if (!UsernameRules.isValid(normalizedUsername)) {
                return Result.failure(InvalidUsernameException())
            }
-           val isAvailableResult = userProfileRepository.isUsernameAvailable(username)
+           val isAvailableResult = userProfileRepository.isUsernameAvailable(normalizedUsername)
            if (isAvailableResult.isFailure) {
                return Result.failure(isAvailableResult.exceptionOrNull() ?: Exception("Error comprobando el nombre de usuario"))
            }
@@ -32,14 +35,14 @@ class RegisterUseCase(private val authRepository: AuthRepository,
                return Result.failure(UsernameTakenException())
            }
 
-           val authResult = authRepository.register(email, password, username)
+           val authResult = authRepository.register(email, password, normalizedUsername)
            if (authResult.isFailure) {
                return Result.failure(authResult.exceptionOrNull() ?: Exception("Error en Firebase Auth"))
            }
            val registeredUser = authResult.getOrNull()!!
            val profile = UserProfile(
                uid = registeredUser.id,
-               username = username
+               username = normalizedUsername
            )
 
            val saveProfileResult = userProfileRepository.saveProfile(profile)
@@ -47,7 +50,7 @@ class RegisterUseCase(private val authRepository: AuthRepository,
                return Result.failure(saveProfileResult.exceptionOrNull() ?: Exception("Error al guardar el perfil del usuario"))
            }
            Result.success(registeredUser)
-       }catch (e: Exception) {
+       } catch (e: Exception) {
            Result.failure(e)
        }
     }
