@@ -47,6 +47,8 @@ final class FriendRequestsViewModel {
         do {
             requests = try await loadUseCase.execute(for: userID)
         } catch {
+            let nsError = error as NSError
+            print("[FriendRequests] \(nsError.domain) (\(nsError.code)): \(nsError.localizedDescription)")
             errorMessage = "No se pudieron cargar las solicitudes."
         }
 

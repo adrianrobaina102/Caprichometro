@@ -11,8 +11,10 @@ import Observation
 @MainActor
 @Observable
 final class CreateCapriceViewModel {
-    var name = ""
-    var price = ""
+    var type = "Compra"
+    var question = ""
+    var answer1 = "Sí, me lo compro"
+    var answer2 = "No, mejor ahorro"
 
     private(set) var isSaving = false
     private(set) var successMessage: String?
@@ -29,33 +31,24 @@ final class CreateCapriceViewModel {
         self.currentUserIDProvider = currentUserIDProvider
     }
 
-    private var parsedPrice: Double? {
-        let normalizedPrice = price
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .replacingOccurrences(of: ",", with: ".")
-
-        guard let value = Double(normalizedPrice),
-              value.isFinite,
-              value > 0 else {
-            return nil
-        }
-
-        return value
+    private func trimmed(_ value: String) -> String {
+        value.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     var canSave: Bool {
-        !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            && parsedPrice != nil
+        !trimmed(question).isEmpty
+            && !trimmed(answer1).isEmpty
+            && !trimmed(answer2).isEmpty
             && !isSaving
     }
 
     func save() async {
-        guard canSave, let parsedPrice else { return }
+        guard canSave else { return }
 
         successMessage = nil
         errorMessage = nil
 
-        guard let ownerID = currentUserIDProvider() else {
+        guard let userID = currentUserIDProvider() else {
             errorMessage = "Inicia sesión antes de guardar un capricho."
             return
         }
@@ -65,14 +58,18 @@ final class CreateCapriceViewModel {
 
         do {
             _ = try await saveCapriceUseCase.execute(
-                name: name.trimmingCharacters(in: .whitespacesAndNewlines),
-                price: parsedPrice,
-                ownerID: ownerID
+                type: type,
+                question: trimmed(question),
+                answer1: trimmed(answer1),
+                answer2: trimmed(answer2),
+                userID: userID
             )
 
             successMessage = "Capricho guardado en la nube."
-            name = ""
-            price = ""
+            question = ""
+            answer1 = "Sí, me lo compro"
+            answer2 = "No, mejor ahorro"
+            type = "Compra"
         } catch {
             errorMessage = "No se pudo guardar el capricho: \(error.localizedDescription)"
         }

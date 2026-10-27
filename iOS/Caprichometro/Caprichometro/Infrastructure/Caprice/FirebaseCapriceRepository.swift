@@ -19,11 +19,12 @@ final class FirestoreCapriceRepository: CapriceRepository {
         let document = try await database
             .collection("caprices")
             .addDocument(data: [
-                "name": caprice.name,
-                "price": caprice.price,
-                "isCaprice": caprice.isCaprice,
-                "timestamp": caprice.timestamp,
-                "ownerId": caprice.ownerID
+                "userId": caprice.userID,
+                "type": caprice.type,
+                "question": caprice.question,
+                "answer1": caprice.answer1,
+                "answer2": caprice.answer2,
+                "timestamp": caprice.timestamp
             ])
 
         return document.documentID

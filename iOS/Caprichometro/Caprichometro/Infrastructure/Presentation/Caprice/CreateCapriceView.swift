@@ -12,13 +12,25 @@ struct CreateCapriceView: View {
 
     var body: some View {
         Form {
-            Section("Tu capricho") {
-                TextField("¿Qué te quieres comprar?", text: $viewModel.name)
-
-                TextField("Precio (€)", text: $viewModel.price)
-                    .keyboardType(.decimalPad)
+            Section("Tipo") {
+                Picker("Tipo de capricho", selection: $viewModel.type) {
+                    Text("Compra").tag("Compra")
+                    Text("Plan").tag("Plan")
+                }
+                .pickerStyle(.segmented)
             }
 
+            Section("Pregunta") {
+                TextField(
+                    "¿Me compro estos zapatos?",
+                    text: $viewModel.question
+                )
+            }
+
+            Section("Opciones") {
+                TextField("Primera opción", text: $viewModel.answer1)
+                TextField("Segunda opción", text: $viewModel.answer2)
+            }
             Button {
                 Task {
                     await viewModel.save()

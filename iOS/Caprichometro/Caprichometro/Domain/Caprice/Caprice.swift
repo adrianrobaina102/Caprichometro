@@ -6,9 +6,10 @@
 //
 
 struct Caprice {
-    let name: String
-    let price: Double
-    let isCaprice: Bool
+    let userID: String
+    let type: String
+    let question: String
+    let answer1: String
+    let answer2: String
     let timestamp: Int64
-    let ownerID: String
 }
