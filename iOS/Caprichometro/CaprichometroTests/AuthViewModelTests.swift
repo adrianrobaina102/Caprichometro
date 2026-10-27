@@ -40,6 +40,36 @@ final class AuthViewModelTests: XCTestCase {
         XCTAssertNil(viewModel.errorMessage)
     }
 
+    func testRegistrationRejectsInvalidEmailFormat() {
+        let viewModel = makeViewModel(repository: TestAuthRepository())
+        viewModel.username = "dani"
+        viewModel.birthday = Date()
+        viewModel.email = "not-an-email"
+        viewModel.password = "123456"
+
+        XCTAssertFalse(viewModel.validate(isRegistering: true))
+        XCTAssertEqual(viewModel.invalidField, .email)
+        XCTAssertEqual(
+            viewModel.errorMessage,
+            "Introduce un correo electrónico válido."
+        )
+    }
+
+    func testRegistrationRejectsPasswordShorterThanSixCharacters() {
+        let viewModel = makeViewModel(repository: TestAuthRepository())
+        viewModel.username = "dani"
+        viewModel.birthday = Date()
+        viewModel.email = "dani@example.com"
+        viewModel.password = "12345"
+
+        XCTAssertFalse(viewModel.validate(isRegistering: true))
+        XCTAssertEqual(viewModel.invalidField, .password)
+        XCTAssertEqual(
+            viewModel.errorMessage,
+            "La contraseña debe tener al menos 6 caracteres."
+        )
+    }
+
     private func makeViewModel(repository: TestAuthRepository) -> AuthViewModel {
         let useCases = AuthUseCases(repository: repository)
         let registerUserUseCase = RegisterUserUseCase(

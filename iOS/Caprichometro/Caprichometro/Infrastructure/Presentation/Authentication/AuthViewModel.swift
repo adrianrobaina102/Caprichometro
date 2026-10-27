@@ -70,13 +70,33 @@ final class AuthViewModel {
                 return false
             }
         }
-        guard !email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+        let normalizedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !normalizedEmail.isEmpty else {
             errorMessage = "Introduce tu correo electrónico."
             invalidField = .email
             return false
         }
+
+        let emailPattern = #"^[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$"#
+
+        guard normalizedEmail.range(
+            of: emailPattern,
+            options: .regularExpression
+        ) != nil else {
+            errorMessage = "Introduce un correo electrónico válido."
+            invalidField = .email
+            return false
+        }
+
         guard !password.isEmpty else {
             errorMessage = "Introduce tu contraseña."
+            invalidField = .password
+            return false
+        }
+
+        if isRegistering && password.count < 6 {
+            errorMessage = "La contraseña debe tener al menos 6 caracteres."
             invalidField = .password
             return false
         }
