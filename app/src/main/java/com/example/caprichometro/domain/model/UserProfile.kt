@@ -1,7 +1,9 @@
 package com.example.caprichometro.domain.model
 
+import java.util.Date
+
 data class UserProfile(
     val uid: String,
     val username: String,
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Date = Date()
 )

@@ -5,4 +5,5 @@ interface UserProfileRepository {
     suspend fun  isUsernameAvailable(username: String): Result<Boolean>
 
     suspend fun saveProfile(profile: UserProfile): Result<Unit>
+    suspend fun getUserById(userId: String): Result<UserProfile?>
 }

@@ -4,6 +4,7 @@ import com.example.caprichometro.domain.model.UserProfile
 import com.example.caprichometro.domain.model.UserProfileRepository
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
+import java.util.Date
 
 class FirestoreUserProfileRepository (private val db: FirebaseFirestore = FirebaseFirestore.getInstance()) : UserProfileRepository
 {
@@ -36,6 +37,23 @@ class FirestoreUserProfileRepository (private val db: FirebaseFirestore = Fireba
             batch.commit().await()
             Result.success(Unit)
         }catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    override suspend fun getUserById(userId: String): Result<UserProfile?> {
+        return try {
+            val userDoc = db.collection("users").document(userId).get().await()
+            if (!userDoc.exists()) {
+                return Result.success(null)
+            }
+
+            val profile = UserProfile(
+                uid = userId,
+                username = userDoc.getString("username") ?: "",
+                createdAt = userDoc.getDate("createdAt") ?: Date()
+            )
+            Result.success(profile)
+        } catch (e: Exception) {
             Result.failure(e)
         }
     }
