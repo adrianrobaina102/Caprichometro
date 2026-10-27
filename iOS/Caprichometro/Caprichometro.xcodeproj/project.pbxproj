@@ -13,8 +13,19 @@
 		33554D78308C045800FD809A /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 33554D77308C045800FD809A /* FirebaseFirestore */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		33C9E91F30909F2C00E5FA98 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 33554D57308BED7300FD809A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 33554D5E308BED7300FD809A;
+			remoteInfo = Caprichometro;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		33554D5F308BED7300FD809A /* Caprichometro.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Caprichometro.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		33C9E91B30909F2C00E5FA98 /* CaprichometroTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CaprichometroTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -36,6 +47,11 @@
 			path = Caprichometro;
 			sourceTree = "<group>";
 		};
+		33C9E91C30909F2C00E5FA98 /* CaprichometroTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = CaprichometroTests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -50,6 +66,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		33C9E91830909F2C00E5FA98 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -57,6 +80,7 @@
 			isa = PBXGroup;
 			children = (
 				33554D61308BED7300FD809A /* Caprichometro */,
+				33C9E91C30909F2C00E5FA98 /* CaprichometroTests */,
 				33554D60308BED7300FD809A /* Products */,
 			);
 			sourceTree = "<group>";
@@ -65,6 +89,7 @@
 			isa = PBXGroup;
 			children = (
 				33554D5F308BED7300FD809A /* Caprichometro.app */,
+				33C9E91B30909F2C00E5FA98 /* CaprichometroTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -98,6 +123,29 @@
 			productReference = 33554D5F308BED7300FD809A /* Caprichometro.app */;
 			productType = "com.apple.product-type.application";
 		};
+		33C9E91A30909F2C00E5FA98 /* CaprichometroTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 33C9E92330909F2D00E5FA98 /* Build configuration list for PBXNativeTarget "CaprichometroTests" */;
+			buildPhases = (
+				33C9E91730909F2C00E5FA98 /* Sources */,
+				33C9E91830909F2C00E5FA98 /* Frameworks */,
+				33C9E91930909F2C00E5FA98 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				33C9E92030909F2C00E5FA98 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				33C9E91C30909F2C00E5FA98 /* CaprichometroTests */,
+			);
+			name = CaprichometroTests;
+			packageProductDependencies = (
+			);
+			productName = CaprichometroTests;
+			productReference = 33C9E91B30909F2C00E5FA98 /* CaprichometroTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -110,6 +158,10 @@
 				TargetAttributes = {
 					33554D5E308BED7300FD809A = {
 						CreatedOnToolsVersion = 27.1;
+					};
+					33C9E91A30909F2C00E5FA98 = {
+						CreatedOnToolsVersion = 27.1;
+						TestTargetID = 33554D5E308BED7300FD809A;
 					};
 				};
 			};
@@ -132,12 +184,20 @@
 			projectRoot = "";
 			targets = (
 				33554D5E308BED7300FD809A /* Caprichometro */,
+				33C9E91A30909F2C00E5FA98 /* CaprichometroTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		33554D5D308BED7300FD809A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		33C9E91930909F2C00E5FA98 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -154,7 +214,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		33C9E91730909F2C00E5FA98 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		33C9E92030909F2C00E5FA98 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 33554D5E308BED7300FD809A /* Caprichometro */;
+			targetProxy = 33C9E91F30909F2C00E5FA98 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		33554D68308BED7500FD809A /* Debug */ = {
@@ -352,6 +427,48 @@
 			};
 			name = Release;
 		};
+		33C9E92130909F2C00E5FA98 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = J93A698BJN;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = pamn2026.CaprichometroTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Caprichometro.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Caprichometro";
+			};
+			name = Debug;
+		};
+		33C9E92230909F2C00E5FA98 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = J93A698BJN;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = pamn2026.CaprichometroTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Caprichometro.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Caprichometro";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -369,6 +486,15 @@
 			buildConfigurations = (
 				33554D6B308BED7500FD809A /* Debug */,
 				33554D6C308BED7500FD809A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		33C9E92330909F2D00E5FA98 /* Build configuration list for PBXNativeTarget "CaprichometroTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				33C9E92130909F2C00E5FA98 /* Debug */,
+				33C9E92230909F2C00E5FA98 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
