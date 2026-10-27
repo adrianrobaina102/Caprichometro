@@ -82,6 +82,11 @@ class FirestoreFriendshipRepository(
             .whereArrayContains("memberIDs", userId)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
+                    val isLoggedOut = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser == null
+                    if (error.code == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED && isLoggedOut) {
+                        close()
+                        return@addSnapshotListener
+                    }
                     android.util.Log.e("FirestoreFriendship", "Error en SnapshotListener: ${error.message}", error)
                     close(error)
                     return@addSnapshotListener

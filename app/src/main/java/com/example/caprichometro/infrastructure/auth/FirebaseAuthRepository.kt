@@ -90,6 +90,30 @@ class FirebaseAuthRepository(
             Result.failure(e)
         }
     }
+    override suspend fun signOut(): Result<Unit> {
+        return try {
+            firebaseAuth.signOut()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun deleteAccount(): Result<Unit> {
+        return try {
+            val currentUser = firebaseAuth.currentUser ?: return Result.failure(Exception("No hay usuario autenticado"))
+            currentUser.delete().await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override fun getCurrentUser(): User? {
+        val firebaseUser = firebaseAuth.currentUser ?: return null
+        return mapToDomain(firebaseUser)
+    }
+
     private fun mapToDomain(
         firebaseUser: com.google.firebase.auth.FirebaseUser,
         overrideName: String? = null

@@ -3,9 +3,12 @@ package com.example.caprichometro.infrastructure.ui.auth
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.caprichometro.application.usecase.auth.DeleteAccountUseCase
+import com.example.caprichometro.application.usecase.auth.GetCurrentUserUseCase
 import com.example.caprichometro.application.usecase.auth.RegisterUseCase
 import com.example.caprichometro.application.usecase.auth.SignInUseCase
 import com.example.caprichometro.application.usecase.auth.SignInWithGoogleUseCase
+import com.example.caprichometro.application.usecase.auth.SignOutUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,10 +29,15 @@ data class AuthState(
 class AuthViewModel(
     private val signInUseCase: SignInUseCase,
     private val registerUseCase: RegisterUseCase,
-    private val signInWithGoogleUseCase: SignInWithGoogleUseCase
+    private val signInWithGoogleUseCase: SignInWithGoogleUseCase,
+    private val signOutUseCase: SignOutUseCase,
+    private val deleteAccountUseCase: DeleteAccountUseCase,
+    private val getCurrentUserUseCase: GetCurrentUserUseCase
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(AuthState())
+    private val _state = MutableStateFlow(
+        AuthState(isAuthSuccessful = getCurrentUserUseCase.execute() != null)
+    )
     val state: StateFlow<AuthState> = _state.asStateFlow()
 
     fun updateEmail(email: String) { _state.update { it.copy(email = email) } }
@@ -37,6 +45,7 @@ class AuthViewModel(
     fun updateName(name: String) { _state.update { it.copy(name = name) } }
     fun clearError() { _state.update { it.copy(errorMessage = null) } }
     fun updateBirthday(date: LocalDate) { _state.update { it.copy(birthday = date) } }
+
     fun signIn() {
         val currentState = _state.value
         if (currentState.email.isBlank() || currentState.password.isBlank()) {
@@ -129,6 +138,33 @@ class AuthViewModel(
                 onFailure = { exception ->
                     _state.update {
                         it.copy(isSubmitting = false, errorMessage = exception.message ?: "Error al iniciar sesión con Google")
+                    }
+                }
+            )
+        }
+    }
+
+    fun signOut() {
+        viewModelScope.launch {
+            signOutUseCase.execute()
+            _state.update { AuthState(isAuthSuccessful = false) }
+        }
+    }
+
+    fun deleteAccount(userId: String, username: String) {
+        viewModelScope.launch {
+            _state.update { it.copy(isSubmitting = true, errorMessage = null) }
+            val result = deleteAccountUseCase.execute(userId, username)
+            result.fold(
+                onSuccess = {
+                    _state.update { AuthState(isAuthSuccessful = false) }
+                },
+                onFailure = { error ->
+                    _state.update {
+                        it.copy(
+                            isSubmitting = false,
+                            errorMessage = error.message ?: "Error al borrar la cuenta"
+                        )
                     }
                 }
             )

@@ -98,4 +98,30 @@ class FirestoreUserProfileRepository (private val db: FirebaseFirestore = Fireba
             Result.failure(e)
         }
     }
+
+    override suspend fun deleteProfile(userId: String, username: String): Result<Unit> {
+        return try {
+            val batch = db.batch()
+            batch.delete(db.collection("users").document(userId))
+
+            var targetUsername = username
+            if (targetUsername.isBlank()) {
+                val usernameDoc = db.collection("usernames")
+                    .whereEqualTo("uid", userId)
+                    .limit(1)
+                    .get()
+                    .await()
+                targetUsername = usernameDoc.documents.firstOrNull()?.id ?: ""
+            }
+
+            if (targetUsername.isNotBlank()) {
+                batch.delete(db.collection("usernames").document(targetUsername))
+            }
+
+            batch.commit().await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

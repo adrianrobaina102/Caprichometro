@@ -5,11 +5,11 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.DeleteForever
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -17,14 +17,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.caprichometro.application.usecase.GetCapricesUseCase
 import com.example.caprichometro.application.usecase.SaveCapriceUseCase
+import com.example.caprichometro.application.usecase.auth.DeleteAccountUseCase
+import com.example.caprichometro.application.usecase.auth.GetCurrentUserUseCase
 import com.example.caprichometro.application.usecase.auth.RegisterUseCase
 import com.example.caprichometro.application.usecase.auth.SignInUseCase
 import com.example.caprichometro.application.usecase.auth.SignInWithGoogleUseCase
+import com.example.caprichometro.application.usecase.auth.SignOutUseCase
 import com.example.caprichometro.application.usecase.friendship.GetAcceptedFriendsUseCase
 import com.example.caprichometro.application.usecase.friendship.GetIncomingFriendRequestsUseCase
 import com.example.caprichometro.application.usecase.friendship.RespondToFriendRequestUseCase
@@ -55,8 +59,18 @@ class MainActivity : ComponentActivity() {
         val authRepository = FirebaseAuthRepository()
         val signInUseCase = SignInUseCase(authRepository)
         val registerUseCase = RegisterUseCase(authRepository, userProfileRepository)
-        val signInWithGoogleUseCase = SignInWithGoogleUseCase(authRepository)
-        val authViewModel = AuthViewModel(signInUseCase, registerUseCase, signInWithGoogleUseCase)
+        val signInWithGoogleUseCase = SignInWithGoogleUseCase(authRepository, userProfileRepository)
+        val signOutUseCase = SignOutUseCase(authRepository)
+        val deleteAccountUseCase = DeleteAccountUseCase(authRepository, userProfileRepository)
+        val getCurrentUserUseCase = GetCurrentUserUseCase(authRepository)
+        val authViewModel = AuthViewModel(
+            signInUseCase,
+            registerUseCase,
+            signInWithGoogleUseCase,
+            signOutUseCase,
+            deleteAccountUseCase,
+            getCurrentUserUseCase
+        )
 
         // Dependencias de Amistad
         val friendshipRepository = FirestoreFriendshipRepository()
@@ -95,10 +109,14 @@ fun CapriceApp(
     LaunchedEffect(authState.isAuthSuccessful, currentUserId) {
         if (authState.isAuthSuccessful && currentUserId.isNotBlank()) {
             friendshipViewModel.listenToIncomingRequests(currentUserId)
+        } else {
+            friendshipViewModel.stopListening()
         }
     }
 
     var currentScreen by remember { mutableStateOf("create") }
+    var showProfileMenu by remember { mutableStateOf(false) }
+    var showDeleteConfirmDialog by remember { mutableStateOf(false) }
 
     MaterialTheme {
         Surface(modifier = Modifier.fillMaxSize()) {
@@ -113,29 +131,108 @@ fun CapriceApp(
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(Color(0xFF1E1E1E))
-                            .padding(8.dp),
-                        horizontalArrangement = Arrangement.SpaceEvenly
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Button(
-                            onClick = { currentScreen = "create" },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (currentScreen != "add_friend") Color(0xFFD4FF00) else Color.DarkGray,
-                                contentColor = Color.Black
-                            )
-                        ) {
-                            Text("Caprichos")
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(
+                                onClick = { currentScreen = "create" },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (currentScreen != "add_friend") Color(0xFFD4FF00) else Color.DarkGray,
+                                    contentColor = Color.Black
+                                )
+                            ) {
+                                Text("Caprichos")
+                            }
+
+                            Button(
+                                onClick = { currentScreen = "add_friend" },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (currentScreen == "add_friend") Color(0xFFD4FF00) else Color.DarkGray,
+                                    contentColor = Color.Black
+                                )
+                            ) {
+                                val pendingCount = friendshipState.incomingRequests.size
+                                Text(if (pendingCount > 0) "Amigos ($pendingCount)" else "Amigos")
+                            }
                         }
 
-                        Button(
-                            onClick = { currentScreen = "add_friend" },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (currentScreen == "add_friend") Color(0xFFD4FF00) else Color.DarkGray,
-                                contentColor = Color.Black
-                            )
-                        ) {
-                            val pendingCount = friendshipState.incomingRequests.size
-                            Text(if (pendingCount > 0) "Amigos ($pendingCount)" else "Amigos")
+                        // Menú de opciones de perfil (Cerrar sesión / Borrar cuenta)
+                        Box {
+                            IconButton(onClick = { showProfileMenu = true }) {
+                                Icon(
+                                    imageVector = Icons.Default.AccountCircle,
+                                    contentDescription = "Opciones de perfil",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(32.dp)
+                                )
+                            }
+
+                            DropdownMenu(
+                                expanded = showProfileMenu,
+                                onDismissRequest = { showProfileMenu = false },
+                                modifier = Modifier.background(Color(0xFF2A2A2A))
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Cerrar sesión", color = Color.White) },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                                            contentDescription = null,
+                                            tint = Color.White
+                                        )
+                                    },
+                                    onClick = {
+                                        showProfileMenu = false
+                                        friendshipViewModel.stopListening()
+                                        authViewModel.signOut()
+                                    }
+                                )
+
+                                DropdownMenuItem(
+                                    text = { Text("Borrar cuenta", color = Color(0xFFFF5252)) },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = Icons.Default.DeleteForever,
+                                            contentDescription = null,
+                                            tint = Color(0xFFFF5252)
+                                        )
+                                    },
+                                    onClick = {
+                                        showProfileMenu = false
+                                        showDeleteConfirmDialog = true
+                                    }
+                                )
+                            }
                         }
+                    }
+
+                    if (showDeleteConfirmDialog) {
+                        AlertDialog(
+                            onDismissRequest = { showDeleteConfirmDialog = false },
+                            title = { Text("¿Eliminar cuenta?") },
+                            text = { Text("Esta acción es irreversible y eliminará todos tus datos y perfil.") },
+                            confirmButton = {
+                                TextButton(
+                                    onClick = {
+                                        showDeleteConfirmDialog = false
+                                        friendshipViewModel.stopListening()
+                                        authViewModel.deleteAccount(currentUserId, "")
+                                    }
+                                ) {
+                                    Text("Eliminar", color = Color.Red)
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showDeleteConfirmDialog = false }) {
+                                    Text("Cancelar", color = Color.White)
+                                }
+                            },
+                            containerColor = Color(0xFF2A2A2A),
+                            titleContentColor = Color.White,
+                            textContentColor = Color.LightGray
+                        )
                     }
                     Box(modifier = Modifier.weight(1f)) {
                         when (currentScreen) {

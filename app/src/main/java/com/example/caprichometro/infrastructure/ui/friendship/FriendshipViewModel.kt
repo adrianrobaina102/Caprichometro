@@ -73,6 +73,12 @@ class FriendshipViewModel(
         }
     }
 
+    fun stopListening() {
+        listenRequestsJob?.cancel()
+        listenRequestsJob = null
+        _state.update { it.copy(incomingRequests = emptyList(), friends = emptyList()) }
+    }
+
     fun updateSearchQuery(query: String) {
         _state.update { it.copy(searchQuery = query, errorMessage = null, userFound = null, requestSentSuccess = false) }
     }

@@ -1,5 +1,6 @@
-package com.example.caprichometro.domain.model
+package com.example.caprichometro.domain
 
+import com.example.caprichometro.domain.model.UsernameRules
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
