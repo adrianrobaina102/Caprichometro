@@ -59,12 +59,42 @@ Esta app comparte base de datos en **Firebase Firestore** con una app de iOS en 
 
 ---
 
-## 5. Estado Actual del Proyecto (Punto de Partida)
-- **Completado:**
-    - Autenticación con Email/Password y Google.
-    - Creación de caprichos.
-    - Búsqueda de usuarios por `@username` y envío de solicitudes de amistad (sincronizado con iOS).
-    - Lectura en tiempo real (`callbackFlow`) de solicitudes de amistad entrantes (`GetIncomingFriendRequestsUseCase`) cruzando datos con `UserProfileRepository`.
-    - UI de `AddFriendScreen` mostrando el buscador y las tarjetas de solicitudes pendientes.
-- **Siguiente tarea inmediata (TODO):**
-    - Implementar la lógica para **Aceptar** y **Rechazar** solicitudes de amistad (`RespondToFriendRequestUseCase`, método en `FriendshipRepository` actualizando `status` a `"accepted"` / `"declined"` y `updatedAt`, conexión en `FriendshipViewModel` y quitar los `/* TODO */` de los botones en `AddFriendScreen.kt`).
+## 5. Estado Actual del Proyecto (Balance de lo Conseguido)
+- **Autenticación y Sesión:**
+    - Registro con Email/Password con validación y normalización estricta de `@username` (3-15 chars, minúsculas, sin `@`).
+    - Login tradicional e inicio de sesión con Google (Credential Manager).
+    - Verificación y guardado automático en Firestore para nuevos usuarios de Google sin colisiones.
+    - **Auto-login**: La app recuerda la sesión en cada arranque (`GetCurrentUserUseCase`).
+    - Menú de perfil en barra superior con **Cerrar sesión** y **Borrar cuenta** (borrado en Firebase Auth y Firestore en cascada).
+    - Cancelación limpia de listeners (`stopListening()`) al cerrar sesión para evitar errores `PERMISSION_DENIED`.
+- **Amistad (Sincronizado con iOS):**
+    - Búsqueda en tiempo real por `@username` en colección `usernames`.
+    - Envío de solicitudes con ID canónico determinista (`minUid_maxUid`).
+    - Escucha en tiempo real de solicitudes entrantes y listado de amigos aceptados (`GetAcceptedFriendsUseCase`).
+    - Aceptar (`ACCEPTED`) y rechazar (`DECLINED`) solicitudes en tiempo real.
+    - Manejo de fallback para mostrar siempre `@username` de remitentes.
+- **Tests y Arquitectura:**
+    - Arquitectura Hexagonal estricta.
+    - Suite de pruebas unitarias organizada en subdirectorios por módulo (`auth`, `caprice`, `domain`, `friendship`) pasando al 100%.
+
+---
+
+## 6. Balance de lo que Falta y Hoja de Ruta Pendiente
+
+### A. Votaciones de Caprichos en Tiempo Real (Núcleo de la App):
+- **Votación real de amigos:** Actualmente `ActivePollScreen` muestra datos y avatares simulados (mock). Falta crear el feed/pantalla para que el amigo vea la encuesta abierta y pueda votar opción A o B.
+- **Resultados reales:** En `ResultScreen`, conectar los porcentajes y recuentos de votos reales en Firestore en lugar de los textos fijos ("8 de 11", "73% / 27%", "Lucía").
+- **Fotos de Caprichos:** Conectar la cámara/galería en `CapriceScreen` y almacenamiento en Firebase Storage.
+
+### B. Borrado de Cuenta en Cascada (Completar):
+- **Borrar Amistades (`friendships`):** Al eliminar cuenta en `DeleteAccountUseCase`, buscar con `whereArrayContains("memberIDs", userId)` y eliminar todos los documentos en `friendships` para no dejar amistades huérfanas en el feed de los amigos.
+- **Borrar Caprichos (`caprices`):** Borrar también las encuestas creadas por el usuario (`whereEqualTo("userId", userId)`).
+
+### C. Deuda Técnica y Contrato con iOS:
+- **Fechas en `Caprice.kt`:** Cambiar `timestamp: Long` por `Date` para cumplir con las directrices de Firestore e iOS.
+- **Limpieza de archivos:** Renombrar `application/usecase/auth/AuthViewModel.kt` a `AuthUseCases.kt` (o dividir en use cases) y eliminar `FirebaseAuthManager.kt` (código muerto).
+- **Protección en `SendFriendRequestUseCase`:** Comprobar si ya existe amistad previa antes de hacer `.set()` para evitar sobreescribir un estado `ACCEPTED`.
+- **Gestión de Amistades:** Añadir opción para eliminar amigos existentes ("unfriend").
+
+### D. Reorganización de Historial Git (Requisito Académico):
+- Reconstruir el historial lineal en ramas de características temáticas (GitFlow: e.g. `feat/auth`, `feat/friendship`, `feat/caprice`) mediante cherry-pick seguro manteniendo un branch de respaldo intocable.
